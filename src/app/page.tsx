@@ -255,111 +255,77 @@ export default function MobileVoiceApp() {
             isDark ? "bg-[#121214] text-zinc-100" : "bg-[#faf7f5] text-stone-900"
           } ${isTransitioningTheme ? "theme-transition" : ""}`}
         >
-          {/* iOS Status Bar with Center Dynamic Island Clearance */}
-          <div className="relative z-30 flex h-7 w-full items-center justify-between px-5 pt-1 shrink-0 select-none">
-            {/* Left: Clock */}
-            <span className={`text-[11px] font-semibold tracking-tight ${isDark ? "text-zinc-300" : "text-stone-800"}`}>
-              9:41
-            </span>
-            {/* Center: Gap where SVG Dynamic Island renders */}
-            <div className="w-24 shrink-0" />
-            {/* Right: Cellular / Battery */}
-            <div className={`flex items-center gap-1.5 ${isDark ? "text-zinc-300" : "text-stone-800"}`}>
-              <span className="text-[10px] font-bold tracking-tight">5G</span>
-              <div className={`h-2.5 w-3.5 rounded-[3px] border relative flex items-center px-[1px] ${
-                isDark ? "border-zinc-400" : "border-stone-600"
-              }`}>
-                <div className={`h-1.5 w-full rounded-[1px] ${
-                  isDark ? "bg-zinc-200" : "bg-stone-800"
-                }`} />
-              </div>
+          {/* TOP HEADER: Seamless Frameless Glass Navigation (No Fake Status Bar, No Static Rectangular Strip) */}
+          <header className="sticky top-0 z-20 flex h-14 items-center justify-between px-4 pt-4 shrink-0 transition-all duration-300 select-none backdrop-blur-md">
+            {/* Left: Hamburger Button & Branded Logo */}
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className={`flex size-9 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                  isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
+                }`}
+                aria-label="Open Sidebar"
+              >
+                <Menu className="size-5" />
+              </button>
+
+              {/* Branded Logo */}
+              <span
+                className={`text-base font-bold tracking-tight select-none ${
+                  isDark ? "text-zinc-100" : "text-stone-900"
+                }`}
+              >
+                {language === "hi" ? "सखी" : "Sakhi"}
+                <span className="text-rose-500 text-xs ml-0.5">●</span>
+              </span>
             </div>
-          </div>
 
-          {/* TOP HEADER: Liquid Glass Floating Navigation Bar */}
-          <header
-            className="sticky top-0 z-20 flex h-12 items-center justify-between px-3 shrink-0 transition-all duration-300 select-none"
-            style={{
-              background: isDark
-                ? "linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(18, 18, 20, 0.4)"
-                : "linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 100%), rgba(250, 247, 245, 0.55)",
-              backdropFilter: "blur(28px) saturate(200%) brightness(110%)",
-              WebkitBackdropFilter: "blur(28px) saturate(200%) brightness(110%)",
-              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.07)",
-              boxShadow: isDark
-                ? "inset 0 1px 1px 0 rgba(255, 255, 255, 0.18), 0 8px 32px 0 rgba(0, 0, 0, 0.35)"
-                : "inset 0 1px 1px 0 rgba(255, 255, 255, 0.9), 0 8px 24px 0 rgba(0, 0, 0, 0.06)",
-            }}
-          >
-          {/* Left: Hamburger Button & Branded Logo */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className={`flex size-9 items-center justify-center rounded-full transition-colors cursor-pointer ${
-                isDark ? "text-zinc-300 hover:bg-zinc-800" : "text-stone-700 hover:bg-stone-200"
-              }`}
-              aria-label="Open Sidebar"
-            >
-              <Menu className="size-5" />
-            </button>
+            {/* Right Action Icons */}
+            <div className="flex items-center gap-1.5">
+              {/* New Chat Button */}
+              <button
+                onClick={startNewChat}
+                className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                  isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
+                }`}
+                title={language === "hi" ? "नई बातचीत" : "New Chat"}
+              >
+                <SquarePen className="size-4" />
+              </button>
 
-            {/* Branded Logo */}
-            <span
-              className={`text-base font-bold tracking-tight select-none ${
-                isDark ? "text-zinc-100" : "text-stone-900"
-              }`}
-            >
-              {language === "hi" ? "सखी" : "Sakhi"}
-              <span className="text-rose-500 text-xs ml-0.5">●</span>
-            </span>
-          </div>
+              {/* Monochrome Theme Switcher */}
+              <button
+                onClick={toggleTheme}
+                className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                  isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
+                }`}
+                title={language === "hi" ? "थीम बदलें" : "Toggle Theme"}
+              >
+                {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              </button>
 
-          {/* Right Action Icons */}
-          <div className="flex items-center gap-1.5">
-            {/* New Chat Button */}
-            <button
-              onClick={startNewChat}
-              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
-                isDark ? "text-zinc-300 hover:bg-zinc-800" : "text-stone-700 hover:bg-stone-200"
-              }`}
-              title={language === "hi" ? "नई बातचीत" : "New Chat"}
-            >
-              <SquarePen className="size-4" />
-            </button>
+              {/* Language Toggle (Clean Globe Icon Only) */}
+              <button
+                onClick={() => setLanguage((l) => (l === "hi" ? "en" : "hi"))}
+                className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                  isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
+                }`}
+                title={language === "hi" ? "भाषा बदलें" : "Switch Language"}
+              >
+                <Globe className="size-4" />
+              </button>
 
-            {/* Monochrome Theme Switcher */}
-            <button
-              onClick={toggleTheme}
-              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
-                isDark ? "text-zinc-300 hover:bg-zinc-800" : "text-stone-700 hover:bg-stone-200"
-              }`}
-              title={language === "hi" ? "थीम बदलें" : "Toggle Theme"}
-            >
-              {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-            </button>
-
-            {/* Language Toggle (Clean Globe Icon Only) */}
-            <button
-              onClick={() => setLanguage((l) => (l === "hi" ? "en" : "hi"))}
-              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
-                isDark ? "text-zinc-300 hover:bg-zinc-800" : "text-stone-700 hover:bg-stone-200"
-              }`}
-              title={language === "hi" ? "भाषा बदलें" : "Switch Language"}
-            >
-              <Globe className="size-4" />
-            </button>
-
-            {/* SOS Emergency Button */}
-            <button
-              onClick={triggerEmergency}
-              className="flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-rose-500 transition-colors cursor-pointer shadow-sm"
-              title={language === "hi" ? "आपातकाल" : "Emergency SOS"}
-            >
-              <AlertTriangle className="size-3 text-white animate-bounce" />
-              <span>SOS</span>
-            </button>
-          </div>
-        </header>
+              {/* SOS Emergency Button */}
+              <button
+                onClick={triggerEmergency}
+                className="flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-rose-500 transition-colors cursor-pointer shadow-sm"
+                title={language === "hi" ? "आपातकाल" : "Emergency SOS"}
+              >
+                <AlertTriangle className="size-3 text-white animate-bounce" />
+                <span>SOS</span>
+              </button>
+            </div>
+          </header>
 
         {/* MAIN BODY AREA: Pixel-Perfect Vertical Balance */}
         <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-1 min-h-0">
@@ -368,44 +334,9 @@ export default function MobileVoiceApp() {
           {!isChatTranscriptOpen ? (
             <div className="flex flex-1 flex-col justify-between py-1 min-h-0 overflow-hidden animate-in fade-in duration-300">
               
-              {/* UPPER SECTION: Centered Majestic Living Orb with Continuous Cloud / Smoke Mist */}
+              {/* UPPER SECTION: Centered Majestic Living Orb (Clean, Zero Waveforms) */}
               <div className="flex flex-1 flex-col items-center justify-center py-2 min-h-0">
                 <div className="relative flex items-center justify-center shrink-0 my-auto">
-                  {/* Organic Continuous Atmospheric Cloud & Smoke Mist (Zero circular wave rings) */}
-                  <div className="pointer-events-none absolute inset-0 -m-16 overflow-visible">
-                    <div
-                      className={`absolute inset-0 blur-3xl opacity-50 transition-all duration-1000 ${
-                        orbState === "listening"
-                          ? "bg-rose-500/35"
-                          : orbState === "thinking"
-                          ? "bg-amber-500/35"
-                          : orbState === "speaking"
-                          ? "bg-emerald-500/35"
-                          : isDark
-                          ? "bg-emerald-500/15"
-                          : "bg-emerald-500/20"
-                      }`}
-                      style={{
-                        animation: "smokeDrift 14s ease-in-out infinite alternate",
-                      }}
-                    />
-                    <div
-                      className={`absolute inset-3 blur-2xl opacity-40 transition-all duration-1000 ${
-                        orbState === "listening"
-                          ? "bg-rose-400/30"
-                          : orbState === "thinking"
-                          ? "bg-sky-400/30"
-                          : orbState === "speaking"
-                          ? "bg-teal-400/30"
-                          : isDark
-                          ? "bg-teal-400/10"
-                          : "bg-teal-400/15"
-                      }`}
-                      style={{
-                        animation: "smokeDrift 18s ease-in-out infinite alternate-reverse",
-                      }}
-                    />
-                  </div>
                   <LivingVoiceOrb state={orbState} onActivate={handleOrbTap} size={280} />
                 </div>
 
