@@ -50,3 +50,4 @@ test("4. Appointment Conflict: prevents duplicate booking for same date and time
   assert.equal(hasAppointmentConflict(appts, "2026-11-16", "10:30 AM"), true);
   assert.equal(hasAppointmentConflict(appts, "2026-11-16", "02:00 PM"), false);
 });
+

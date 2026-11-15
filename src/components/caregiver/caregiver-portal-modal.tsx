@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Lock, ShieldCheck, CheckCircle2, AlertTriangle, X, Pill, Bell, Sparkles, Plus, Calendar, Trash2 } from "lucide-react";
 import { formatAppointmentDate, type Medication, type Appointment } from "@/lib/medication-store";
 
@@ -51,10 +51,15 @@ export function CaregiverPortalModal({
   const [newDoctorName, setNewDoctorName] = useState("");
   const [newSpecialty, setNewSpecialty] = useState("");
   const [newHospital, setNewHospital] = useState("");
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const [newApptDate, setNewApptDate] = useState(`${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`);
+  const [newApptDate, setNewApptDate] = useState("2026-11-16");
   const [newApptTime, setNewApptTime] = useState("11:00 AM");
+
+  useEffect(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNewApptDate(`${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`);
+  }, []);
 
   // Drug Safety Rust Check State
   const [safetyDrug, setSafetyDrug] = useState("");

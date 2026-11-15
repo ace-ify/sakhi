@@ -78,3 +78,4 @@ ${prescriptionText || "Rx: Tab Telmisartan 40mg 1-0-0 (Morning post breakfast), 
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
