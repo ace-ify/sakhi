@@ -248,84 +248,83 @@ export default function MobileVoiceApp() {
         </svg>
       </div>
 
-      {/* AUTHENTIC IPHONE 16 PRO HARDWARE CHASSIS MOCKUP */}
-      <Iphone16Pro width={410}>
-        <div
-          className={`relative z-10 flex h-full w-full flex-col overflow-hidden transition-colors duration-500 ${
-            isDark ? "bg-[#121214] text-zinc-100" : "bg-[#faf7f5] text-stone-900"
-          } ${isTransitioningTheme ? "theme-transition" : ""}`}
-        >
-          {/* TOP HEADER: Seamless Frameless Glass Navigation (No Fake Status Bar, No Static Rectangular Strip) */}
-          <header className="sticky top-0 z-20 flex h-14 items-center justify-between px-4 pt-4 shrink-0 transition-all duration-300 select-none backdrop-blur-md">
-            {/* Left: Hamburger Button & Branded Logo */}
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className={`flex size-9 items-center justify-center rounded-full transition-colors cursor-pointer ${
-                  isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
-                }`}
-                aria-label="Open Sidebar"
-              >
-                <Menu className="size-5" />
-              </button>
+      {/* CENTRAL PHONE CONTAINER: Clean, Modern, Sleek Smartphone Frame */}
+      <div
+        className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[40px] sm:border sm:border-zinc-800/80 shadow-2xl transition-colors duration-500 mx-auto ${
+          isDark ? "bg-[#121214] text-zinc-100 sm:shadow-[0_25px_70px_rgba(0,0,0,0.85)]" : "bg-[#faf7f5] text-stone-900 sm:border-stone-300 sm:shadow-[0_25px_60px_rgba(0,0,0,0.2)]"
+        } ${isTransitioningTheme ? "theme-transition" : ""}`}
+      >
+        {/* TOP HEADER: Clean & Breathable Navigation Bar (Dynamic Island Removed, All Buttons 100% Visible) */}
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between px-4 pt-1 shrink-0 transition-all duration-300 select-none">
+          {/* Left: Hamburger Button & Branded Logo */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className={`flex size-9 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
+              }`}
+              aria-label="Open Sidebar"
+            >
+              <Menu className="size-5" />
+            </button>
 
-              {/* Branded Logo */}
-              <span
-                className={`text-base font-bold tracking-tight select-none ${
-                  isDark ? "text-zinc-100" : "text-stone-900"
-                }`}
-              >
-                {language === "hi" ? "सखी" : "Sakhi"}
-                <span className="text-rose-500 text-xs ml-0.5">●</span>
-              </span>
-            </div>
+            {/* Branded Logo */}
+            <span
+              className={`text-base font-bold tracking-tight select-none ${
+                isDark ? "text-zinc-100" : "text-stone-900"
+              }`}
+            >
+              {language === "hi" ? "सखी" : "Sakhi"}
+              <span className="text-rose-500 text-xs ml-0.5">●</span>
+            </span>
+          </div>
 
-            {/* Right Action Icons */}
-            <div className="flex items-center gap-1.5">
-              {/* New Chat Button */}
-              <button
-                onClick={startNewChat}
-                className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
-                  isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
-                }`}
-                title={language === "hi" ? "नई बातचीत" : "New Chat"}
-              >
-                <SquarePen className="size-4" />
-              </button>
+          {/* Right Action Icons */}
+          <div className="flex items-center gap-1.5">
+            {/* New Chat Button */}
+            <button
+              onClick={startNewChat}
+              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
+              }`}
+              title={language === "hi" ? "नई बातचीत" : "New Chat"}
+            >
+              <SquarePen className="size-4" />
+            </button>
 
-              {/* Monochrome Theme Switcher */}
-              <button
-                onClick={toggleTheme}
-                className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
-                  isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
-                }`}
-                title={language === "hi" ? "थीम बदलें" : "Toggle Theme"}
-              >
-                {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              </button>
+            {/* Monochrome Theme Switcher */}
+            <button
+              onClick={toggleTheme}
+              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
+              }`}
+              title={language === "hi" ? "थीम बदलें" : "Toggle Theme"}
+            >
+              {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </button>
 
-              {/* Language Toggle (Clean Globe Icon Only) */}
-              <button
-                onClick={() => setLanguage((l) => (l === "hi" ? "en" : "hi"))}
-                className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
-                  isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
-                }`}
-                title={language === "hi" ? "भाषा बदलें" : "Switch Language"}
-              >
-                <Globe className="size-4" />
-              </button>
+            {/* Language Toggle (Clean Globe Icon Only) */}
+            <button
+              onClick={() => setLanguage((l) => (l === "hi" ? "en" : "hi"))}
+              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                isDark ? "text-zinc-300 hover:bg-zinc-800/60" : "text-stone-700 hover:bg-stone-200/60"
+              }`}
+              title={language === "hi" ? "भाषा बदलें" : "Switch Language"}
+            >
+              <Globe className="size-4" />
+            </button>
 
-              {/* SOS Emergency Button */}
-              <button
-                onClick={triggerEmergency}
-                className="flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-rose-500 transition-colors cursor-pointer shadow-sm"
-                title={language === "hi" ? "आपातकाल" : "Emergency SOS"}
-              >
-                <AlertTriangle className="size-3 text-white animate-bounce" />
-                <span>SOS</span>
-              </button>
-            </div>
-          </header>
+            {/* SOS Emergency Button */}
+            <button
+              onClick={triggerEmergency}
+              className="flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-rose-500 transition-colors cursor-pointer shadow-sm"
+              title={language === "hi" ? "आपातकाल" : "Emergency SOS"}
+            >
+              <AlertTriangle className="size-3 text-white animate-bounce" />
+              <span>SOS</span>
+            </button>
+          </div>
+        </header>
 
         {/* MAIN BODY AREA: Pixel-Perfect Vertical Balance */}
         <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-1 min-h-0">
