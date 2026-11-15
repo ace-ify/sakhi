@@ -1,27 +1,29 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { Mic, MicOff, MessageSquare, PhoneOff, PhoneCall, SendHorizontal, Loader2, ChevronDown } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Mic, MicOff, MessageSquareText, PhoneOff, PhoneCall, SendHorizontal, ChevronDown, Loader2 } from "lucide-react";
 
 export interface AgentControlBarProps {
-  isChatOpen?: boolean;
-  isCallConnected?: boolean;
-  isMicMuted?: boolean;
-  onToggleMic?: () => void;
-  onToggleChat?: () => void;
-  onStartCall?: () => void;
-  onEndCall?: () => void;
-  onSendMessage?: (message: string) => void;
+  isTextInputOpen: boolean;
+  isChatTranscriptOpen: boolean;
+  isCallConnected: boolean;
+  isMicMuted: boolean;
+  onToggleMic: () => void;
+  onToggleChatButton: () => void; // Clicked the chat button
+  onStartCall: () => void;
+  onEndCall: () => void;
+  onSendMessage: (message: string) => void;
   isDark?: boolean;
   language?: "hi" | "en";
 }
 
 export function AgentControlBar({
-  isChatOpen = false,
+  isTextInputOpen = false,
+  isChatTranscriptOpen = false,
   isCallConnected = true,
   isMicMuted = false,
   onToggleMic,
-  onToggleChat,
+  onToggleChatButton,
   onStartCall,
   onEndCall,
   onSendMessage,
@@ -32,15 +34,21 @@ export function AgentControlBar({
   const [isSending, setIsSending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (isTextInputOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isTextInputOpen]);
+
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || isSending) return;
 
     try {
       setIsSending(true);
-      if (onSendMessage) {
-        onSendMessage(inputText.trim());
-      }
+      onSendMessage(inputText.trim());
       setInputText("");
     } finally {
       setIsSending(false);
@@ -49,114 +57,134 @@ export function AgentControlBar({
 
   return (
     <div
-      className={`w-full flex flex-col rounded-[26px] border p-2.5 shadow-xl transition-all duration-300 ${
+      className={`w-full flex flex-col rounded-[32px] border transition-all duration-300 shadow-2xl ${
         isDark
-          ? "bg-[#18181c]/95 border-zinc-800/90 text-zinc-100"
-          : "bg-white/95 border-stone-200 text-stone-900"
-      }`}
+          ? "bg-[#161619] border-zinc-800/90 text-zinc-100"
+          : "bg-white border-stone-200 text-stone-900"
+      } ${isTextInputOpen ? "p-3 pb-3" : "p-2 px-3"}`}
     >
-      {/* 1. TOP PART: Text Input (Exact match to Screenshot 1) */}
-      <form onSubmit={handleSend} className="flex items-center justify-between gap-2 px-2 pt-1 pb-1">
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder={language === "hi" ? "कुछ लिखें..." : "Type something..."}
-          className={`flex-1 bg-transparent text-xs focus:outline-none placeholder:text-zinc-500 ${
-            isDark ? "text-zinc-100" : "text-stone-900"
-          }`}
-        />
-        <button
-          type="submit"
-          disabled={!inputText.trim() || isSending}
-          className={`flex size-7 shrink-0 items-center justify-center rounded-full transition-all cursor-pointer ${
-            inputText.trim()
-              ? "text-rose-500 hover:text-rose-400 scale-105 active:scale-95"
-              : "text-zinc-500 opacity-40 cursor-not-allowed"
-          }`}
-          title={language === "hi" ? "भेजें" : "Send"}
-        >
-          {isSending ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
-        </button>
-      </form>
+      {/* 1. EXPANDABLE TEXT INPUT (Only appears when Chat button is toggled ON!) */}
+      <div
+        className={`w-full overflow-hidden transition-all duration-300 ease-out ${
+          isTextInputOpen ? "max-h-24 opacity-100 mb-2" : "max-h-0 opacity-0 pointer-events-none mb-0"
+        }`}
+      >
+        <form onSubmit={handleSend} className="flex items-center justify-between gap-2 px-2 pt-1 pb-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder={language === "hi" ? "कुछ लिखें..." : "Type something..."}
+            className={`flex-1 bg-transparent text-sm focus:outline-none placeholder:text-zinc-500 font-normal ${
+              isDark ? "text-zinc-100" : "text-stone-900"
+            }`}
+          />
+          <button
+            type="submit"
+            disabled={!inputText.trim() || isSending}
+            className={`flex size-8 shrink-0 items-center justify-center transition-all cursor-pointer ${
+              inputText.trim()
+                ? isDark
+                  ? "text-zinc-200 hover:text-white"
+                  : "text-stone-800 hover:text-stone-950"
+                : "text-zinc-500 opacity-40 cursor-not-allowed"
+            }`}
+            title={language === "hi" ? "भेजें" : "Send"}
+          >
+            {isSending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <SendHorizontal className="size-4 text-current" strokeWidth={1.8} />
+            )}
+          </button>
+        </form>
 
-      {/* SUBTLE HAIRLINE DIVIDER */}
-      <div className={`my-2 border-t ${isDark ? "border-zinc-800/70" : "border-stone-200/80"}`} />
+        {/* Thin divider line between text input and button row (Exact match to Screenshot 1) */}
+        <div className={`mt-2 border-t ${isDark ? "border-zinc-800/80" : "border-stone-200/80"}`} />
+      </div>
 
-      {/* 2. BOTTOM PART: Action Buttons Row (Exact match to Screenshot 1) */}
-      <div className="flex items-center justify-between px-1">
+      {/* 2. BUTTONS ROW (Pixel-perfect match to Screenshot 1) */}
+      <div className="flex items-center justify-between w-full">
         
-        {/* LEFT: Microphone Pill with Visualizer Frequency Bars & Caret */}
+        {/* LEFT: Microphone Pill with Visualizer / Mute & Chevron */}
         <button
           type="button"
           onClick={onToggleMic}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all cursor-pointer ${
-            !isMicMuted && isCallConnected
-              ? "bg-rose-500/15 text-rose-500 hover:bg-rose-500/25"
+          className={`flex items-center gap-1.5 rounded-full px-3 py-2 transition-all cursor-pointer border ${
+            isMicMuted
+              ? isDark
+                ? "bg-rose-950/40 text-rose-400 border-rose-900/50 hover:bg-rose-950/60"
+                : "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
               : isDark
-              ? "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
-              : "bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900"
+              ? "bg-[#202025] text-zinc-200 border-zinc-700/80 hover:bg-[#282830]"
+              : "bg-stone-100 text-stone-800 border-stone-200 hover:bg-stone-200"
           }`}
-          title={language === "hi" ? (!isMicMuted ? "माइक म्यूट करें" : "माइक अनम्यूट करें") : (!isMicMuted ? "Mute Microphone" : "Unmute Microphone")}
+          title={isMicMuted ? (language === "hi" ? "माइक चालू करें" : "Unmute Microphone") : (language === "hi" ? "माइक बंद करें" : "Mute Microphone")}
         >
-          {!isMicMuted && isCallConnected ? (
-            <>
-              <Mic className="size-3.5 text-rose-500" />
-              {/* Frequency Audio Visualizer Bars */}
-              <span className="flex items-center gap-0.5 mx-0.5">
-                <span className="w-0.5 h-2.5 bg-rose-500 rounded-full animate-pulse" />
-                <span className="w-0.5 h-4 bg-rose-500 rounded-full animate-bounce" />
-                <span className="w-0.5 h-2 bg-rose-500 rounded-full animate-pulse" />
-              </span>
-              <span className="h-3 w-px bg-rose-500/30 mx-0.5" />
-              <ChevronDown className="size-3 text-rose-500" />
-            </>
+          {isMicMuted ? (
+            <MicOff className="size-4 text-rose-500" strokeWidth={2} />
           ) : (
-            <>
-              <MicOff className="size-3.5 text-rose-400" />
-              <span className="h-3 w-px bg-zinc-700 mx-0.5" />
-              <ChevronDown className="size-3 text-zinc-500" />
-            </>
+            <div className="flex items-center gap-1">
+              <Mic className="size-4 text-current" strokeWidth={2} />
+              {/* Audio Equalizer Frequency Bars */}
+              {isCallConnected && (
+                <span className="flex items-center gap-0.5 ml-0.5">
+                  <span className="w-0.5 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  <span className="w-0.5 h-3.5 bg-emerald-400 rounded-full animate-bounce" />
+                  <span className="w-0.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                </span>
+              )}
+            </div>
           )}
+          <span className={`h-3 w-px ${isDark ? "bg-zinc-700" : "bg-stone-300"} mx-0.5`} />
+          <ChevronDown className="size-3.5 text-current opacity-70" strokeWidth={2} />
         </button>
 
         {/* MIDDLE: Chat / Transcript Toggle Button (Blue Pill when active like Screenshot 1) */}
         <button
           type="button"
-          onClick={onToggleChat}
-          className={`flex size-9 items-center justify-center rounded-full transition-all cursor-pointer ${
-            isChatOpen
-              ? "bg-indigo-500/20 text-indigo-400 ring-1 ring-indigo-500/40 shadow-xs"
+          onClick={onToggleChatButton}
+          className={`flex size-10 items-center justify-center rounded-full transition-all cursor-pointer border ${
+            isTextInputOpen || isChatTranscriptOpen
+              ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/40 shadow-xs"
               : isDark
-              ? "bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
-              : "bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900"
+              ? "bg-[#202025] text-zinc-300 border-zinc-800 hover:bg-[#282830] hover:text-white"
+              : "bg-stone-100 text-stone-700 border-stone-200 hover:bg-stone-200"
           }`}
-          title={language === "hi" ? (isChatOpen ? "बातचीत छुपाएं" : "बातचीत देखें") : (isChatOpen ? "Hide Transcript" : "View Transcript")}
+          title={language === "hi" ? "चैट" : "Chat"}
         >
-          <MessageSquare className="size-4" />
+          <MessageSquareText className="size-4" strokeWidth={1.8} />
         </button>
 
-        {/* RIGHT: End Call vs Start Call Button (Exact match to Screenshot 1) */}
+        {/* RIGHT: End Call vs Call Button (Exact match to Screenshot 1) */}
         {isCallConnected ? (
           <button
             type="button"
             onClick={onEndCall}
-            className="flex items-center gap-1.5 rounded-full bg-rose-500/15 text-rose-500 hover:bg-rose-500/25 px-3.5 py-1.5 text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-xs"
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer border ${
+              isDark
+                ? "bg-rose-950/40 text-rose-400 border-rose-900/60 hover:bg-rose-950/70"
+                : "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
+            }`}
             title={language === "hi" ? "कॉल समाप्त करें" : "End Call"}
           >
-            <PhoneOff className="size-3.5" />
-            <span>{language === "hi" ? "समाप्त" : "END"}</span>
+            <PhoneOff className="size-3.5 text-rose-500" strokeWidth={2.2} />
+            <span className="tracking-wide">END</span>
           </button>
         ) : (
           <button
             type="button"
             onClick={onStartCall}
-            className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 px-3.5 py-1.5 text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-xs"
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer border ${
+              isDark
+                ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/60 hover:bg-emerald-950/70"
+                : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+            }`}
             title={language === "hi" ? "कॉल शुरू करें" : "Start Call"}
           >
-            <PhoneCall className="size-3.5" />
-            <span>{language === "hi" ? "कॉल" : "CALL"}</span>
+            <PhoneCall className="size-3.5 text-emerald-500" strokeWidth={2.2} />
+            <span className="tracking-wide">CALL</span>
           </button>
         )}
       </div>

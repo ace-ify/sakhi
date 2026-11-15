@@ -24,7 +24,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-// Claude Code-style rotating status words (strict single language)
+// Claude Code-style rotating status words (pure language specific)
 const THINKING_WORDS_HI = ["जांच जारी है...", "पर्चा समझ रहा हूँ...", "दवा मिला रहा हूँ...", "तैयार कर रहा हूँ..."];
 const THINKING_WORDS_EN = ["Analyzing...", "Synthesizing...", "Verifying...", "Retrieving EHR..."];
 
@@ -36,16 +36,19 @@ export default function MobileVoiceApp() {
   // Language state: "hi" (Strict pure Hindi) | "en" (Strict pure English)
   const [language, setLanguage] = useState<"hi" | "en">("hi");
 
-  // Call & Voice states
+  // Call & Voice session states
   const [isCallConnected, setIsCallConnected] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [orbState, setOrbState] = useState<VoiceState>("idle");
 
-  // UI state
+  // Chat UI states: Text input vs Full Transcript
+  const [isTextInputOpen, setIsTextInputOpen] = useState(false); // Controls only the text bar inside control bar
+  const [isChatTranscriptOpen, setIsChatTranscriptOpen] = useState(false); // Controls the full message transcript
+
+  // App Modals & history
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isApptOpen, setIsApptOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false); // Controls chat transcript expansion
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [statusWordIndex, setStatusWordIndex] = useState(0);
 
@@ -71,7 +74,8 @@ export default function MobileVoiceApp() {
   // Start fresh chat / reset
   const startNewChat = () => {
     setMessages([]);
-    setIsChatOpen(false);
+    setIsTextInputOpen(false);
+    setIsChatTranscriptOpen(false);
     setIsCallConnected(false);
     setIsMicMuted(false);
     setOrbState("idle");
@@ -92,10 +96,13 @@ export default function MobileVoiceApp() {
         { icon: "💧", text: "Hydration and BP check time", reply: "Please drink a glass of warm water. Your evening BP check is set for 5:00 PM." },
       ];
 
-  // Execute a prompt
+  // Execute a prompt or send text message
   const handleTrigger = (promptText: string, replyText: string) => {
-    setIsChatOpen(true);
+    // When text is sent, open both the text bar and the full transcript!
+    setIsTextInputOpen(true);
+    setIsChatTranscriptOpen(true);
     setIsCallConnected(true);
+
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     const userMsg: TranscriptMessage = {
@@ -122,6 +129,20 @@ export default function MobileVoiceApp() {
         setOrbState("idle");
       }, 5000);
     }, 1200);
+  };
+
+  // Chat Button toggle logic:
+  // 1. If transcript is open -> close both transcript & text input (hide all text!).
+  // 2. If closed -> open text bar input only!
+  const handleToggleChatButton = () => {
+    if (isChatTranscriptOpen) {
+      setIsChatTranscriptOpen(false);
+      setIsTextInputOpen(false);
+    } else if (isTextInputOpen) {
+      setIsTextInputOpen(false);
+    } else {
+      setIsTextInputOpen(true);
+    }
   };
 
   // Start Call (Right Button in Control Bar)
@@ -165,7 +186,7 @@ export default function MobileVoiceApp() {
     }
   };
 
-  // Submit message from text box
+  // Send query typed in Control Bar
   const handleSendMessage = (text: string) => {
     handleTrigger(
       text,
@@ -224,7 +245,7 @@ export default function MobileVoiceApp() {
             : "bg-[#faf7f5] text-stone-900 border-stone-300 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)]"
         } ${isTransitioningTheme ? "theme-transition" : ""}`}
       >
-        {/* TOP HEADER: Seamless & Breathable (NO harsh horizontal divider line) */}
+        {/* TOP HEADER: Clean & Breathable (NO harsh horizontal divider line) */}
         <header className="flex h-14 items-center justify-between px-5 pt-2 shrink-0 z-20">
           {/* Left: Hamburger Button & Branded Logo */}
           <div className="flex items-center gap-2.5">
@@ -296,14 +317,14 @@ export default function MobileVoiceApp() {
           </div>
         </header>
 
-        {/* MAIN BODY AREA WITH CONTINUOUS FLUID ORB TRANSITION */}
+        {/* MAIN BODY AREA WITH CONTINUOUS GPU ORB GLIDE TRANSITION */}
         <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-2">
           
-          {/* ORB SECTION: Spacious, positioned comfortably down, NO harsh lines */}
+          {/* ORB SECTION: Spacious, breathable, positioned comfortably down, NO harsh lines */}
           <div
             style={{
-              transform: isChatOpen ? "translate3d(0, 4px, 0)" : "translate3d(0, 52px, 0)",
-              transition: "transform 650ms cubic-bezier(0.25, 1, 0.5, 1)",
+              transform: isChatTranscriptOpen ? "translate3d(0, 4px, 0)" : "translate3d(0, 52px, 0)",
+              transition: "transform 650ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
             className="w-full flex items-center justify-between shrink-0 z-10"
           >
@@ -312,9 +333,9 @@ export default function MobileVoiceApp() {
               {/* Scaled living watercolor orb (Spacious 0.82 in compact, 1.0 in center) */}
               <div
                 style={{
-                  transform: isChatOpen ? "scale(0.82)" : "scale(1)",
+                  transform: isChatTranscriptOpen ? "scale(0.82)" : "scale(1)",
                   transformOrigin: "left center",
-                  transition: "transform 650ms cubic-bezier(0.25, 1, 0.5, 1)",
+                  transition: "transform 650ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
                 className="relative flex items-center justify-center shrink-0"
               >
@@ -349,16 +370,19 @@ export default function MobileVoiceApp() {
                 >
                   {getStatusWord()}
                 </span>
-                {isChatOpen && (
+                {isChatTranscriptOpen && (
                   <span className="text-[10px] text-zinc-500">{language === "hi" ? "सखी साथी" : "Sakhi Companion"}</span>
                 )}
               </div>
             </div>
 
             {/* Collapse Chat Button (Visible when chat transcript is open) */}
-            {isChatOpen && (
+            {isChatTranscriptOpen && (
               <button
-                onClick={() => setIsChatOpen(false)}
+                onClick={() => {
+                  setIsChatTranscriptOpen(false);
+                  setIsTextInputOpen(false);
+                }}
                 className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] border transition-colors cursor-pointer ${
                   isDark
                     ? "bg-zinc-800/80 border-zinc-700 text-zinc-300 hover:text-white"
@@ -372,13 +396,16 @@ export default function MobileVoiceApp() {
             )}
           </div>
 
-          {/* CHAT TRANSCRIPT AREA (Smooth fade and slide) */}
+          {/* CHAT TRANSCRIPT AREA (Smoothly expands when message sent) */}
           <div
-            className={`w-full flex-1 flex flex-col overflow-hidden pt-3 transition-all duration-500 ease-in-out ${
-              isChatOpen
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 pointer-events-none translate-y-6 hidden"
-            }`}
+            style={{
+              maxHeight: isChatTranscriptOpen ? "500px" : "0px",
+              opacity: isChatTranscriptOpen ? 1 : 0,
+              transform: isChatTranscriptOpen ? "translate3d(0, 0, 0)" : "translate3d(0, 20px, 0)",
+              transition: "max-height 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease, transform 600ms cubic-bezier(0.22, 1, 0.36, 1)",
+              pointerEvents: isChatTranscriptOpen ? "auto" : "none",
+            }}
+            className="w-full flex-1 flex flex-col overflow-hidden pt-2"
           >
             <AgentChatTranscript
               messages={messages}
@@ -388,15 +415,15 @@ export default function MobileVoiceApp() {
             />
           </div>
 
-          {/* LOWER SECTION: Minimalist Prompts (Visible when chat transcript is not open) */}
+          {/* LOWER SECTION: Minimalist Prompts (Visible when transcript is closed) */}
           <div
             style={{
-              opacity: !isChatOpen && messages.length === 0 ? 1 : 0,
-              transform: !isChatOpen && messages.length === 0 ? "translate3d(0, 0, 0)" : "translate3d(0, 20px, 0)",
+              opacity: !isChatTranscriptOpen && messages.length === 0 ? 1 : 0,
+              transform: !isChatTranscriptOpen && messages.length === 0 ? "translate3d(0, 0, 0)" : "translate3d(0, 20px, 0)",
               transition: "opacity 400ms ease, transform 400ms ease",
-              pointerEvents: !isChatOpen && messages.length === 0 ? "auto" : "none",
+              pointerEvents: !isChatTranscriptOpen && messages.length === 0 ? "auto" : "none",
             }}
-            className={`w-full mt-auto pb-3 ${isChatOpen ? "hidden" : "block"}`}
+            className={`w-full mt-auto pb-3 ${isChatTranscriptOpen ? "hidden" : "block"}`}
           >
             <div className="mb-2">
               <h2
@@ -408,7 +435,7 @@ export default function MobileVoiceApp() {
               </h2>
             </div>
 
-            {/* Clean, minimalist single-line items matching ChatGPT reference */}
+            {/* Clean, minimalist single-line items */}
             <div className="space-y-1.5">
               {minimalPrompts.map((p, idx) => (
                 <button
@@ -428,10 +455,13 @@ export default function MobileVoiceApp() {
           </div>
 
           {/* VIEW CHAT FLOATING PILL (When messages exist but transcript was minimized) */}
-          {!isChatOpen && messages.length > 0 && (
+          {!isChatTranscriptOpen && messages.length > 0 && (
             <div className="flex justify-center mt-auto pb-2 animate-fade-in">
               <button
-                onClick={() => setIsChatOpen(true)}
+                onClick={() => {
+                  setIsChatTranscriptOpen(true);
+                  setIsTextInputOpen(true);
+                }}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border shadow-xs transition-colors cursor-pointer ${
                   isDark
                     ? "bg-zinc-800/90 border-zinc-700 text-zinc-200 hover:bg-zinc-700"
@@ -446,14 +476,15 @@ export default function MobileVoiceApp() {
           )}
         </div>
 
-        {/* BOTTOM OFFICIAL LIVEKIT AGENT CONTROL BAR (Exact match to Screenshot 1) */}
+        {/* BOTTOM OFFICIAL LIVEKIT AGENT CONTROL BAR (Pixel-perfect match to Screenshot 1) */}
         <div className="px-3 pb-3 pt-1 shrink-0 z-20">
           <AgentControlBar
-            isChatOpen={isChatOpen}
+            isTextInputOpen={isTextInputOpen}
+            isChatTranscriptOpen={isChatTranscriptOpen}
             isCallConnected={isCallConnected}
             isMicMuted={isMicMuted}
             onToggleMic={handleToggleMic}
-            onToggleChat={() => setIsChatOpen(!isChatOpen)}
+            onToggleChatButton={handleToggleChatButton}
             onStartCall={handleStartCall}
             onEndCall={handleEndCall}
             onSendMessage={handleSendMessage}
