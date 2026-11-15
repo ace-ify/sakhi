@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  --background: #d62839;
+  --foreground: #1c1917;
+}
+
+body {
+  background-color: #d62839;
+  color: #1c1917;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Wavy illustration pattern background matching user reference image */
+.bg-editorial-pattern {
+  background-color: #d62839;
+  background-image: radial-gradient(#ba182b 1.5px, transparent 1.5px),
+                    radial-gradient(#ba182b 1.5px, #d62839 1.5px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
