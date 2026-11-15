@@ -33,7 +33,7 @@ export function AgentChatTranscript({
   }, [messages, agentState]);
 
   return (
-    <div className={`flex flex-1 flex-col overflow-y-auto space-y-3 p-2 [scrollbar-width:thin] ${className}`}>
+    <div className={`flex flex-1 flex-col overflow-y-auto space-y-3 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}>
       {messages.map((m) => {
         const isAgent = m.sender === "agent";
         return (

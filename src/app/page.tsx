@@ -317,25 +317,28 @@ export default function MobileVoiceApp() {
           </div>
         </header>
 
-        {/* MAIN BODY AREA WITH CONTINUOUS GPU ORB GLIDE TRANSITION */}
+        {/* MAIN BODY AREA WITH DYNAMIC VIEW SWITCHING */}
         <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-2">
           
-          {/* ORB SECTION: Spacious, breathable, positioned comfortably down, NO harsh lines */}
+          {/* ORB SECTION: Seamlessly transforms between Centered Hero and Mini Header Avatar */}
           <div
-            style={{
-              transform: isChatTranscriptOpen ? "translate3d(0, 4px, 0)" : "translate3d(0, 52px, 0)",
-              transition: "transform 650ms cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
-            className="w-full flex items-center justify-between shrink-0 z-10"
+            className={`w-full transition-all duration-500 ease-out flex ${
+              isChatTranscriptOpen
+                ? "items-center justify-between py-2 shrink-0 z-10"
+                : "flex-col items-center justify-center pt-8 pb-4 shrink-0 z-10"
+            }`}
           >
-            {/* Orb + Claude Status Wrapper */}
-            <div className="flex items-center gap-3">
-              {/* Scaled living watercolor orb (Spacious 0.82 in compact, 1.0 in center) */}
+            <div
+              className={`flex items-center transition-all duration-500 ${
+                isChatTranscriptOpen ? "gap-3" : "flex-col items-center gap-3"
+              }`}
+            >
+              {/* Scaled living watercolor orb (1.0 centered, 0.45 in compact header) */}
               <div
                 style={{
-                  transform: isChatTranscriptOpen ? "scale(0.82)" : "scale(1)",
-                  transformOrigin: "left center",
-                  transition: "transform 650ms cubic-bezier(0.22, 1, 0.36, 1)",
+                  transform: isChatTranscriptOpen ? "scale(0.48)" : "scale(1)",
+                  transformOrigin: isChatTranscriptOpen ? "left center" : "center center",
+                  transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
                 className="relative flex items-center justify-center shrink-0"
               >
@@ -353,8 +356,32 @@ export default function MobileVoiceApp() {
                 <LivingVoiceOrb state={orbState} onActivate={handleToggleMic} />
               </div>
 
-              {/* Status Word Beside Orb */}
-              <div className="flex flex-col">
+              {/* Status Indicator Logic:
+                  - In Chat mode: Always visible beside the mini orb with rotating words
+                  - In Home mode: ONLY visible when active (listening/thinking/speaking), zero clutter when idle
+              */}
+              {isChatTranscriptOpen ? (
+                <div className="flex flex-col">
+                  <span
+                    className={`text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
+                      orbState === "thinking"
+                        ? "text-amber-400 animate-pulse"
+                        : orbState === "listening"
+                        ? "text-rose-400 animate-pulse"
+                        : orbState === "speaking"
+                        ? "text-emerald-400 animate-pulse"
+                        : isDark
+                        ? "text-zinc-400"
+                        : "text-stone-600"
+                    }`}
+                  >
+                    {getStatusWord()}
+                  </span>
+                  <span className="text-[10px] text-zinc-500">
+                    {language === "hi" ? "सखी साथी" : "Sakhi Companion"}
+                  </span>
+                </div>
+              ) : orbState !== "idle" ? (
                 <span
                   className={`text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
                     orbState === "thinking"
@@ -363,20 +390,15 @@ export default function MobileVoiceApp() {
                       ? "text-rose-400 animate-pulse"
                       : orbState === "speaking"
                       ? "text-emerald-400 animate-pulse"
-                      : isDark
-                      ? "text-zinc-400"
-                      : "text-stone-600"
+                      : "text-zinc-400"
                   }`}
                 >
                   {getStatusWord()}
                 </span>
-                {isChatTranscriptOpen && (
-                  <span className="text-[10px] text-zinc-500">{language === "hi" ? "सखी साथी" : "Sakhi Companion"}</span>
-                )}
-              </div>
+              ) : null}
             </div>
 
-            {/* Collapse Chat Button (Visible when chat transcript is open) */}
+            {/* Collapse Chat Button (Visible only when chat transcript is open) */}
             {isChatTranscriptOpen && (
               <button
                 onClick={() => {
@@ -396,82 +418,48 @@ export default function MobileVoiceApp() {
             )}
           </div>
 
-          {/* CHAT TRANSCRIPT AREA (Smoothly expands when message sent) */}
-          <div
-            style={{
-              maxHeight: isChatTranscriptOpen ? "500px" : "0px",
-              opacity: isChatTranscriptOpen ? 1 : 0,
-              transform: isChatTranscriptOpen ? "translate3d(0, 0, 0)" : "translate3d(0, 20px, 0)",
-              transition: "max-height 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease, transform 600ms cubic-bezier(0.22, 1, 0.36, 1)",
-              pointerEvents: isChatTranscriptOpen ? "auto" : "none",
-            }}
-            className="w-full flex-1 flex flex-col overflow-hidden pt-2"
-          >
-            <AgentChatTranscript
-              messages={messages}
-              agentState={orbState}
-              isDark={isDark}
-              language={language}
-            />
-          </div>
-
-          {/* LOWER SECTION: Minimalist Prompts (Visible when transcript is closed) */}
-          <div
-            style={{
-              opacity: !isChatTranscriptOpen && messages.length === 0 ? 1 : 0,
-              transform: !isChatTranscriptOpen && messages.length === 0 ? "translate3d(0, 0, 0)" : "translate3d(0, 20px, 0)",
-              transition: "opacity 400ms ease, transform 400ms ease",
-              pointerEvents: !isChatTranscriptOpen && messages.length === 0 ? "auto" : "none",
-            }}
-            className={`w-full mt-auto pb-3 ${isChatTranscriptOpen ? "hidden" : "block"}`}
-          >
-            <div className="mb-2">
-              <h2
-                className={`text-lg font-bold tracking-tight ${
-                  isDark ? "text-zinc-100" : "text-stone-900"
-                }`}
-              >
-                {language === "hi" ? "नमस्ते!" : "Good Morning!"}
-              </h2>
+          {/* CHAT TRANSCRIPT AREA (Visible only when transcript is open) */}
+          {isChatTranscriptOpen && (
+            <div className="w-full flex-1 flex flex-col overflow-hidden pt-2 animate-in fade-in duration-300">
+              <AgentChatTranscript
+                messages={messages}
+                agentState={orbState}
+                isDark={isDark}
+                language={language}
+              />
             </div>
+          )}
 
-            {/* Clean, minimalist single-line items */}
-            <div className="space-y-1.5">
-              {minimalPrompts.map((p, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleTrigger(p.text, p.reply)}
-                  className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-colors cursor-pointer ${
-                    isDark
-                      ? "hover:bg-zinc-800/80 text-zinc-300 hover:text-white"
-                      : "hover:bg-stone-200/70 text-stone-700 hover:text-stone-900"
+          {/* LOWER SECTION: Minimalist Prompts (Visible only on clean Home View) */}
+          {!isChatTranscriptOpen && (
+            <div className="w-full mt-auto pb-3 animate-in fade-in duration-300">
+              <div className="mb-2">
+                <h2
+                  className={`text-lg font-bold tracking-tight ${
+                    isDark ? "text-zinc-100" : "text-stone-900"
                   }`}
                 >
-                  <span className="text-sm select-none">{p.icon}</span>
-                  <span className="truncate">{p.text}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+                  {language === "hi" ? "नमस्ते!" : "Good Morning!"}
+                </h2>
+              </div>
 
-          {/* VIEW CHAT FLOATING PILL (When messages exist but transcript was minimized) */}
-          {!isChatTranscriptOpen && messages.length > 0 && (
-            <div className="flex justify-center mt-auto pb-2 animate-fade-in">
-              <button
-                onClick={() => {
-                  setIsChatTranscriptOpen(true);
-                  setIsTextInputOpen(true);
-                }}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border shadow-xs transition-colors cursor-pointer ${
-                  isDark
-                    ? "bg-zinc-800/90 border-zinc-700 text-zinc-200 hover:bg-zinc-700"
-                    : "bg-stone-100 border-stone-300 text-stone-700 hover:bg-stone-200"
-                }`}
-              >
-                <MessageSquare className="size-3.5 text-rose-500" />
-                <span>{language === "hi" ? "बातचीत देखें" : "View Chat"} ({messages.length})</span>
-                <ChevronUp className="size-3.5" />
-              </button>
+              {/* Clean, minimalist single-line items */}
+              <div className="space-y-1.5">
+                {minimalPrompts.map((p, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleTrigger(p.text, p.reply)}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-colors cursor-pointer ${
+                      isDark
+                        ? "hover:bg-zinc-800/80 text-zinc-300 hover:text-white"
+                        : "hover:bg-stone-200/70 text-stone-700 hover:text-stone-900"
+                    }`}
+                  >
+                    <span className="text-sm select-none">{p.icon}</span>
+                    <span className="truncate">{p.text}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
