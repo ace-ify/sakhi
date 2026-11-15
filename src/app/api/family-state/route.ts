@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readHealthState, writeHealthState } from "@/lib/server-health-state";
 import { validFamilyCode } from "@/lib/family-auth";
 import { validateSharedHealthState } from "@/lib/health-state-validator";
+import { hasSameOrigin } from "@/lib/request-origin";
 
 function authorized(request: NextRequest) {
   return validFamilyCode(request.headers.get("x-family-passcode"), process.env.FAMILY_PASSCODE);
@@ -16,8 +17,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "Invalid family passcode" }, { status: 401 });
-  const origin = request.headers.get("origin");
-  if (origin && origin !== request.nextUrl.origin) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  if (!hasSameOrigin(request)) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   if (Number(request.headers.get("content-length") || 0) > 100_000) return NextResponse.json({ error: "State too large" }, { status: 413 });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
