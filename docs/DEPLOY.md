@@ -1,6 +1,6 @@
 # Deploy Sakhi
 
-The hackathon top 10 condition in `abouthack/` requires a working **Google Cloud Run URL**. The current Render demo is useful for preview but does not meet that specific condition. Cloud Run's free tier still requires an active Google Cloud billing account.
+The hackathon top 10 condition in `abouthack/` requires a working **Google Cloud Run URL**. The current Render demo is useful for preview but does not meet that specific condition. Standard user-managed Cloud Run projects require billing even within the free tier. Google also offers a restricted Starter Tier Cloud Run path without billing for eligible personal accounts; see [Starter Tier eligibility and deployment](https://docs.cloud.google.com/docs/starter-tier).
 
 ## Environment
 
@@ -19,7 +19,7 @@ Use a long private `FAMILY_PASSCODE` and a separate random `REMINDER_CRON_SECRET
 
 ## Cloud Run
 
-1. Enable billing for a Google Cloud project and enable Cloud Run, Cloud Build, and Artifact Registry APIs.
+1. For a standard user-managed project, enable billing and the Cloud Run, Cloud Build, and Artifact Registry APIs. If you have no billing account, check Starter Tier eligibility first; its Google-managed project has a different deployment flow through supported tools such as Google AI Studio.
 2. Install and authenticate `gcloud`, then select the project: `gcloud config set project PROJECT_ID`.
 3. From the repository root, run:
 

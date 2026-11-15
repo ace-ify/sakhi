@@ -34,4 +34,4 @@ The test suite imports production source modules, exercises production HTTP rout
 
 ## Hackathon deployment
 
-The hackathon screenshot in `abouthack/` says a working **Cloud Run deployed project link** is required for top 10 consideration. The Render demo alone does not satisfy that condition. `Dockerfile` and [docs/DEPLOY.md](docs/DEPLOY.md) prepare a Cloud Run deployment; a Google Cloud billing account is still needed even when usage stays inside the free tier.
+The hackathon screenshot in `abouthack/` says a working **Cloud Run deployed project link** is required for top 10 consideration. The Render demo alone does not satisfy that condition. `Dockerfile` and [docs/DEPLOY.md](docs/DEPLOY.md) prepare a standard Cloud Run deployment. Standard user-managed projects require billing even within the free tier; eligible personal accounts may qualify for Google's separate no-billing Starter Tier Cloud Run path.
