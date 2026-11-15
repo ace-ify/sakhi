@@ -38,7 +38,7 @@ export default function MobileVoiceApp() {
 
   // Call & Voice session states
   const [isCallConnected, setIsCallConnected] = useState(false);
-  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(true); // Strictly MUTED by default until call connects!
   const [orbState, setOrbState] = useState<VoiceState>("idle");
 
   // Chat UI states: Text input vs Full Transcript
@@ -77,7 +77,7 @@ export default function MobileVoiceApp() {
     setIsTextInputOpen(false);
     setIsChatTranscriptOpen(false);
     setIsCallConnected(false);
-    setIsMicMuted(false);
+    setIsMicMuted(true); // Reset to muted
     setOrbState("idle");
   };
 
@@ -172,18 +172,17 @@ export default function MobileVoiceApp() {
   // End Call (Right Button in Control Bar: END)
   const handleEndCall = () => {
     setIsCallConnected(false);
-    setIsMicMuted(false);
+    setIsMicMuted(true); // Always return to muted when call ends!
     setOrbState("idle");
   };
 
   // Toggle Mic (Left Button in Control Bar: Mic toggle)
-  // Strictly toggles mic mute state; does NOT start calls or force states
+  // Strictly toggles mic mute state; only operates when call is active
   const handleToggleMic = () => {
+    if (!isCallConnected) return; // Strict guard: cannot unmute unless in a call
     setIsMicMuted((prev) => {
       const nextMuted = !prev;
-      if (isCallConnected) {
-        setOrbState(nextMuted ? "idle" : "listening");
-      }
+      setOrbState(nextMuted ? "idle" : "listening");
       return nextMuted;
     });
   };
@@ -248,15 +247,15 @@ export default function MobileVoiceApp() {
         </svg>
       </div>
 
-      {/* CENTRAL PHONE CONTAINER (Clean, Bezelless, Tall Viewport) */}
+      {/* CENTRAL PHONE CONTAINER: Optimized for iPhone 16 Pro Max (430x932 Viewport) */}
       <div
-        className={`relative z-10 flex h-[96vh] max-h-[890px] w-full max-w-[390px] flex-col overflow-hidden rounded-[44px] border shadow-2xl transition-colors duration-500 ${
+        className={`relative z-10 flex h-[100dvh] sm:h-[94vh] sm:max-h-[932px] w-full sm:max-w-[430px] flex-col overflow-hidden rounded-none sm:rounded-[50px] border shadow-2xl transition-colors duration-500 ${
           isDark
             ? "bg-[#121214] text-zinc-100 border-[#2c2c2e] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
             : "bg-[#faf7f5] text-stone-900 border-stone-300 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)]"
         } ${isTransitioningTheme ? "theme-transition" : ""}`}
       >
-        {/* TOP HEADER: Clean & Breathable (NO harsh horizontal divider line) */}
+        {/* TOP HEADER: Clean & Breathable */}
         <header className="flex h-14 items-center justify-between px-5 pt-2 shrink-0 z-20">
           {/* Left: Hamburger Button & Branded Logo */}
           <div className="flex items-center gap-2.5">
@@ -328,102 +327,146 @@ export default function MobileVoiceApp() {
           </div>
         </header>
 
-        {/* MAIN BODY AREA WITH DYNAMIC VIEW SWITCHING */}
+        {/* MAIN BODY AREA: Vertically Balanced & Optimized */}
         <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-2">
           
-          {/* ORB SECTION: Centered in both views, generous and prominent */}
-          <div
-            className={`w-full flex flex-col items-center justify-center shrink-0 z-10 transition-all duration-500 ${
-              isChatTranscriptOpen ? "pt-1 pb-1" : "pt-8 pb-4"
-            }`}
-          >
-            {/* Living Watercolor Orb:
-                - Scale 1.0 (160px) on Home View
-                - Scale 0.72 (~115px) on Chat View (Prominent, centered, breathing room!)
-            */}
-            <div
-              style={{
-                transform: isChatTranscriptOpen ? "scale(0.72)" : "scale(1)",
-                transformOrigin: "center center",
-                transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-              className="relative flex items-center justify-center shrink-0"
-            >
-              <div
-                className={`absolute -inset-6 rounded-full blur-2xl transition-opacity duration-700 pointer-events-none ${
-                  orbState === "listening"
-                    ? "bg-rose-500/25 opacity-100"
-                    : orbState === "thinking"
-                    ? "bg-amber-500/25 opacity-100"
-                    : orbState === "speaking"
-                    ? "bg-emerald-500/25 opacity-100"
-                    : "bg-teal-500/10 opacity-60"
-                }`}
-              />
-              <LivingVoiceOrb state={orbState} onActivate={handleOrbTap} />
-            </div>
-
-            {/* Clean Status Word (Centered under Orb; no redundant subtitles) */}
-            {(isChatTranscriptOpen || orbState !== "idle") && (
-              <span
-                className={`mt-1.5 text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
-                  orbState === "thinking"
-                    ? "text-amber-400 animate-pulse"
-                    : orbState === "listening"
-                    ? "text-rose-400 animate-pulse"
-                    : orbState === "speaking"
-                    ? "text-emerald-400 animate-pulse"
-                    : isDark
-                    ? "text-zinc-400"
-                    : "text-stone-600"
-                }`}
-              >
-                {getStatusWord()}
-              </span>
-            )}
-          </div>
-
-          {/* CHAT TRANSCRIPT AREA (Active when transcript is open) */}
-          {isChatTranscriptOpen && (
-            <div className="w-full flex-1 flex flex-col overflow-hidden pt-1 animate-in fade-in duration-300 min-h-0">
-              <AgentChatTranscript
-                messages={messages}
-                agentState={orbState}
-                isDark={isDark}
-                language={language}
-              />
-            </div>
-          )}
-
-          {/* LOWER SECTION: Minimalist Prompts (Active on clean Home View) */}
-          {!isChatTranscriptOpen && (
-            <div className="w-full mt-auto pb-3 animate-in fade-in duration-300">
-              <div className="mb-2">
-                <h2
-                  className={`text-lg font-bold tracking-tight ${
-                    isDark ? "text-zinc-100" : "text-stone-900"
-                  }`}
+          {/* HOME VIEW: Balanced Two-Tier Layout (No Awkward Void) */}
+          {!isChatTranscriptOpen ? (
+            <div className="flex flex-1 flex-col justify-between py-1 animate-in fade-in duration-300">
+              
+              {/* UPPER HALF: Majestic Centered Living Orb */}
+              <div className="flex flex-1 flex-col items-center justify-center py-2 min-h-[220px]">
+                <div
+                  style={{
+                    transform: "scale(1.15)",
+                    transformOrigin: "center center",
+                  }}
+                  className="relative flex items-center justify-center shrink-0 my-auto"
                 >
-                  {language === "hi" ? "नमस्ते!" : "Good Morning!"}
-                </h2>
-              </div>
+                  <div
+                    className={`absolute -inset-8 rounded-full blur-3xl transition-opacity duration-700 pointer-events-none ${
+                      orbState === "listening"
+                        ? "bg-rose-500/25 opacity-100"
+                        : orbState === "thinking"
+                        ? "bg-amber-500/25 opacity-100"
+                        : orbState === "speaking"
+                        ? "bg-emerald-500/25 opacity-100"
+                        : "bg-teal-500/10 opacity-60"
+                    }`}
+                  />
+                  <LivingVoiceOrb state={orbState} onActivate={handleOrbTap} />
+                </div>
 
-              {/* Clean, minimalist single-line items */}
-              <div className="space-y-1.5">
-                {minimalPrompts.map((p, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleTrigger(p.text, p.reply)}
-                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-colors cursor-pointer ${
-                      isDark
-                        ? "hover:bg-zinc-800/80 text-zinc-300 hover:text-white"
-                        : "hover:bg-stone-200/70 text-stone-700 hover:text-stone-900"
+                {/* Subtle Breathing Status Cue */}
+                <div className="mt-3 text-center">
+                  <span
+                    className={`text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
+                      orbState === "thinking"
+                        ? "text-amber-400 animate-pulse"
+                        : orbState === "listening"
+                        ? "text-rose-400 animate-pulse"
+                        : orbState === "speaking"
+                        ? "text-emerald-400 animate-pulse"
+                        : isDark
+                        ? "text-zinc-500"
+                        : "text-stone-500"
                     }`}
                   >
-                    <span className="text-sm select-none">{p.icon}</span>
-                    <span className="truncate">{p.text}</span>
-                  </button>
-                ))}
+                    {orbState !== "idle"
+                      ? getStatusWord()
+                      : language === "hi"
+                      ? "बात करने के लिए कॉल करें या टैप करें"
+                      : "Tap or Call to speak"}
+                  </span>
+                </div>
+              </div>
+
+              {/* LOWER HALF: Polished iOS-Style Action Cards */}
+              <div className="w-full shrink-0 pt-2 pb-1">
+                <div className="mb-2">
+                  <h2 className={`text-base font-bold tracking-tight ${isDark ? "text-zinc-100" : "text-stone-900"}`}>
+                    {language === "hi" ? "नमस्ते!" : "Good Morning!"}
+                  </h2>
+                  <p className={`text-[11px] ${isDark ? "text-zinc-400" : "text-stone-500"}`}>
+                    {language === "hi" ? "दैनिक स्वास्थ्य सहायता के लिए चुनें" : "Quick access health prompts"}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {minimalPrompts.map((p, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleTrigger(p.text, p.reply)}
+                      className={`flex w-full items-center justify-between rounded-2xl px-3.5 py-2.5 text-left transition-all duration-200 cursor-pointer border ${
+                        isDark
+                          ? "bg-[#18181c]/80 hover:bg-[#202026] border-zinc-800/80 hover:border-zinc-700 text-zinc-200 shadow-xs active:scale-[0.99]"
+                          : "bg-white/80 hover:bg-white border-stone-200/90 text-stone-800 shadow-xs active:scale-[0.99]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <span className="text-sm shrink-0 select-none">{p.icon}</span>
+                        <span className="text-xs font-medium tracking-tight truncate">{p.text}</span>
+                      </div>
+                      <span className={`text-xs font-mono shrink-0 ml-2 ${isDark ? "text-zinc-500" : "text-stone-400"}`}>
+                        →
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* CHAT VIEW: Clean Centered Orb at Top, Scrolling Transcript Below */
+            <div className="flex flex-1 flex-col overflow-hidden animate-in fade-in duration-300">
+              {/* Top Centered Orb */}
+              <div className="w-full flex flex-col items-center justify-center pt-1 pb-1 shrink-0 z-10">
+                <div
+                  style={{
+                    transform: "scale(0.7)",
+                    transformOrigin: "center center",
+                    transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+                  }}
+                  className="relative flex items-center justify-center shrink-0"
+                >
+                  <div
+                    className={`absolute -inset-6 rounded-full blur-2xl transition-opacity duration-700 pointer-events-none ${
+                      orbState === "listening"
+                        ? "bg-rose-500/25 opacity-100"
+                        : orbState === "thinking"
+                        ? "bg-amber-500/25 opacity-100"
+                        : orbState === "speaking"
+                        ? "bg-emerald-500/25 opacity-100"
+                        : "bg-teal-500/10 opacity-60"
+                    }`}
+                  />
+                  <LivingVoiceOrb state={orbState} onActivate={handleOrbTap} />
+                </div>
+
+                <span
+                  className={`mt-1 text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
+                    orbState === "thinking"
+                      ? "text-amber-400 animate-pulse"
+                      : orbState === "listening"
+                      ? "text-rose-400 animate-pulse"
+                      : orbState === "speaking"
+                      ? "text-emerald-400 animate-pulse"
+                      : isDark
+                      ? "text-zinc-400"
+                      : "text-stone-600"
+                  }`}
+                >
+                  {getStatusWord()}
+                </span>
+              </div>
+
+              {/* Chat Transcript Area */}
+              <div className="w-full flex-1 flex flex-col overflow-hidden pt-1 min-h-0">
+                <AgentChatTranscript
+                  messages={messages}
+                  agentState={orbState}
+                  isDark={isDark}
+                  language={language}
+                />
               </div>
             </div>
           )}
