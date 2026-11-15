@@ -7,6 +7,7 @@ import { Iphone16Pro } from "@/components/ui/iphone-16-pro";
 import { AgentControlBar } from "@/components/agents-ui/agent-control-bar";
 import { AgentChatTranscript, type TranscriptMessage } from "@/components/agents-ui/agent-chat-transcript";
 import { AgentPopup } from "@/components/agents-ui/agent-popup";
+import { CaregiverPortalModal } from "@/components/caregiver/caregiver-portal-modal";
 import {
   Menu,
   Globe,
@@ -23,6 +24,7 @@ import {
   X,
   Upload,
   MessageSquare,
+  ShieldCheck,
 } from "lucide-react";
 
 // Claude Code-style rotating status words (pure language specific)
@@ -50,6 +52,7 @@ export default function MobileVoiceApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isApptOpen, setIsApptOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isCaregiverOpen, setIsCaregiverOpen] = useState(false);
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [statusWordIndex, setStatusWordIndex] = useState(0);
 
@@ -534,6 +537,19 @@ export default function MobileVoiceApp() {
                 <button
                   onClick={() => {
                     setIsSidebarOpen(false);
+                    setIsCaregiverOpen(true);
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
+                    isDark ? "text-zinc-300 hover:bg-zinc-800 hover:text-white" : "text-stone-700 hover:bg-stone-100"
+                  }`}
+                >
+                  <ShieldCheck className="size-4 text-emerald-400" />
+                  <span>{language === "hi" ? "पारिवारिक देखभाल (पासकोड)" : "Caregiver Portal (Passcode)"}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsSidebarOpen(false);
                     setIsApptOpen(true);
                   }}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
@@ -760,8 +776,15 @@ export default function MobileVoiceApp() {
             />
           </div>
         )}
+
+        {/* 4. PASSCODE-PROTECTED CAREGIVER & FAMILY PORTAL (DPDP 2023) */}
+        <CaregiverPortalModal
+          isOpen={isCaregiverOpen}
+          onClose={() => setIsCaregiverOpen(false)}
+          isDark={isDark}
+          language={language}
+        />
       </div>
-    </Iphone16Pro>
-  </div>
+    </div>
   );
 }
