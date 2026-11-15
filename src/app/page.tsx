@@ -132,20 +132,25 @@ export default function MobileVoiceApp() {
   };
 
   // Chat Button toggle logic:
-  // 1. If transcript is open -> close both transcript & text input (hide all text!).
-  // 2. If closed -> open text bar input only!
+  // - If chat transcript is currently open -> close both transcript & text input (return to clean home screen)
+  // - If transcript is closed:
+  //   * If existing chat history exists -> open BOTH transcript & text input!
+  //   * If no chat history yet -> toggle text input box only!
   const handleToggleChatButton = () => {
     if (isChatTranscriptOpen) {
       setIsChatTranscriptOpen(false);
       setIsTextInputOpen(false);
-    } else if (isTextInputOpen) {
-      setIsTextInputOpen(false);
     } else {
-      setIsTextInputOpen(true);
+      if (messages.length > 0) {
+        setIsChatTranscriptOpen(true);
+        setIsTextInputOpen(true);
+      } else {
+        setIsTextInputOpen((prev) => !prev);
+      }
     }
   };
 
-  // Start Call (Right Button in Control Bar)
+  // Start Call (Right Button in Control Bar: CALL)
   const handleStartCall = () => {
     setIsCallConnected(true);
     setIsMicMuted(false);
@@ -153,7 +158,7 @@ export default function MobileVoiceApp() {
 
     // Auto demo reply if user stays quiet
     setTimeout(() => {
-      if (orbState === "listening" || isCallConnected) {
+      if (isCallConnected && orbState === "listening") {
         handleTrigger(
           language === "hi" ? "नमस्ते, क्या आज की कोई दवा बाकी है?" : "Hello, any pending medication today?",
           language === "hi"
@@ -161,28 +166,34 @@ export default function MobileVoiceApp() {
             : "Hello! Morning BP medicine is recorded. Next dose is Metformin at 1:30 PM post lunch."
         );
       }
-    }, 3500);
+    }, 4000);
   };
 
-  // End Call (Right Button in Control Bar)
+  // End Call (Right Button in Control Bar: END)
   const handleEndCall = () => {
     setIsCallConnected(false);
-    setIsMicMuted(true);
+    setIsMicMuted(false);
     setOrbState("idle");
   };
 
-  // Toggle Mic (Left Button in Control Bar)
+  // Toggle Mic (Left Button in Control Bar: Mic toggle)
+  // Strictly toggles mic mute state; does NOT start calls or force states
   const handleToggleMic = () => {
+    setIsMicMuted((prev) => {
+      const nextMuted = !prev;
+      if (isCallConnected) {
+        setOrbState(nextMuted ? "idle" : "listening");
+      }
+      return nextMuted;
+    });
+  };
+
+  // Tap Orb Action:
+  const handleOrbTap = () => {
     if (!isCallConnected) {
       handleStartCall();
-      return;
-    }
-    if (isMicMuted) {
-      setIsMicMuted(false);
-      setOrbState("listening");
     } else {
-      setIsMicMuted(true);
-      setOrbState("idle");
+      handleToggleMic();
     }
   };
 
@@ -320,107 +331,61 @@ export default function MobileVoiceApp() {
         {/* MAIN BODY AREA WITH DYNAMIC VIEW SWITCHING */}
         <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-2">
           
-          {/* ORB SECTION: Seamlessly transforms between Centered Hero and Mini Header Avatar */}
+          {/* ORB SECTION: Centered in both views, generous and prominent */}
           <div
-            className={`w-full transition-all duration-500 ease-out flex ${
-              isChatTranscriptOpen
-                ? "items-center justify-between py-2 shrink-0 z-10"
-                : "flex-col items-center justify-center pt-8 pb-4 shrink-0 z-10"
+            className={`w-full flex flex-col items-center justify-center shrink-0 z-10 transition-all duration-500 ${
+              isChatTranscriptOpen ? "pt-1 pb-1" : "pt-8 pb-4"
             }`}
           >
+            {/* Living Watercolor Orb:
+                - Scale 1.0 (160px) on Home View
+                - Scale 0.72 (~115px) on Chat View (Prominent, centered, breathing room!)
+            */}
             <div
-              className={`flex items-center transition-all duration-500 ${
-                isChatTranscriptOpen ? "gap-3" : "flex-col items-center gap-3"
-              }`}
+              style={{
+                transform: isChatTranscriptOpen ? "scale(0.72)" : "scale(1)",
+                transformOrigin: "center center",
+                transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
+              className="relative flex items-center justify-center shrink-0"
             >
-              {/* Scaled living watercolor orb (1.0 centered, 0.45 in compact header) */}
               <div
-                style={{
-                  transform: isChatTranscriptOpen ? "scale(0.48)" : "scale(1)",
-                  transformOrigin: isChatTranscriptOpen ? "left center" : "center center",
-                  transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
-                }}
-                className="relative flex items-center justify-center shrink-0"
-              >
-                <div
-                  className={`absolute -inset-6 rounded-full blur-2xl transition-opacity duration-700 pointer-events-none ${
-                    orbState === "listening"
-                      ? "bg-rose-500/25 opacity-100"
-                      : orbState === "thinking"
-                      ? "bg-amber-500/25 opacity-100"
-                      : orbState === "speaking"
-                      ? "bg-emerald-500/25 opacity-100"
-                      : "bg-teal-500/10 opacity-60"
-                  }`}
-                />
-                <LivingVoiceOrb state={orbState} onActivate={handleToggleMic} />
-              </div>
-
-              {/* Status Indicator Logic:
-                  - In Chat mode: Always visible beside the mini orb with rotating words
-                  - In Home mode: ONLY visible when active (listening/thinking/speaking), zero clutter when idle
-              */}
-              {isChatTranscriptOpen ? (
-                <div className="flex flex-col">
-                  <span
-                    className={`text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
-                      orbState === "thinking"
-                        ? "text-amber-400 animate-pulse"
-                        : orbState === "listening"
-                        ? "text-rose-400 animate-pulse"
-                        : orbState === "speaking"
-                        ? "text-emerald-400 animate-pulse"
-                        : isDark
-                        ? "text-zinc-400"
-                        : "text-stone-600"
-                    }`}
-                  >
-                    {getStatusWord()}
-                  </span>
-                  <span className="text-[10px] text-zinc-500">
-                    {language === "hi" ? "सखी साथी" : "Sakhi Companion"}
-                  </span>
-                </div>
-              ) : orbState !== "idle" ? (
-                <span
-                  className={`text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
-                    orbState === "thinking"
-                      ? "text-amber-400 animate-pulse"
-                      : orbState === "listening"
-                      ? "text-rose-400 animate-pulse"
-                      : orbState === "speaking"
-                      ? "text-emerald-400 animate-pulse"
-                      : "text-zinc-400"
-                  }`}
-                >
-                  {getStatusWord()}
-                </span>
-              ) : null}
+                className={`absolute -inset-6 rounded-full blur-2xl transition-opacity duration-700 pointer-events-none ${
+                  orbState === "listening"
+                    ? "bg-rose-500/25 opacity-100"
+                    : orbState === "thinking"
+                    ? "bg-amber-500/25 opacity-100"
+                    : orbState === "speaking"
+                    ? "bg-emerald-500/25 opacity-100"
+                    : "bg-teal-500/10 opacity-60"
+                }`}
+              />
+              <LivingVoiceOrb state={orbState} onActivate={handleOrbTap} />
             </div>
 
-            {/* Collapse Chat Button (Visible only when chat transcript is open) */}
-            {isChatTranscriptOpen && (
-              <button
-                onClick={() => {
-                  setIsChatTranscriptOpen(false);
-                  setIsTextInputOpen(false);
-                }}
-                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] border transition-colors cursor-pointer ${
-                  isDark
-                    ? "bg-zinc-800/80 border-zinc-700 text-zinc-300 hover:text-white"
-                    : "bg-stone-100 border-stone-300 text-stone-700 hover:text-stone-900"
+            {/* Clean Status Word (Centered under Orb; no redundant subtitles) */}
+            {(isChatTranscriptOpen || orbState !== "idle") && (
+              <span
+                className={`mt-1.5 text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
+                  orbState === "thinking"
+                    ? "text-amber-400 animate-pulse"
+                    : orbState === "listening"
+                    ? "text-rose-400 animate-pulse"
+                    : orbState === "speaking"
+                    ? "text-emerald-400 animate-pulse"
+                    : isDark
+                    ? "text-zinc-400"
+                    : "text-stone-600"
                 }`}
-                title={language === "hi" ? "ऑर्ब देखें" : "Full Orb"}
               >
-                <span>{language === "hi" ? "ऑर्ब" : "Orb"}</span>
-                <ChevronDown className="size-3" />
-              </button>
+                {getStatusWord()}
+              </span>
             )}
           </div>
 
-          {/* CHAT TRANSCRIPT AREA (Visible only when transcript is open) */}
+          {/* CHAT TRANSCRIPT AREA (Active when transcript is open) */}
           {isChatTranscriptOpen && (
-            <div className="w-full flex-1 flex flex-col overflow-hidden pt-2 animate-in fade-in duration-300">
+            <div className="w-full flex-1 flex flex-col overflow-hidden pt-1 animate-in fade-in duration-300 min-h-0">
               <AgentChatTranscript
                 messages={messages}
                 agentState={orbState}
@@ -430,7 +395,7 @@ export default function MobileVoiceApp() {
             </div>
           )}
 
-          {/* LOWER SECTION: Minimalist Prompts (Visible only on clean Home View) */}
+          {/* LOWER SECTION: Minimalist Prompts (Active on clean Home View) */}
           {!isChatTranscriptOpen && (
             <div className="w-full mt-auto pb-3 animate-in fade-in duration-300">
               <div className="mb-2">
