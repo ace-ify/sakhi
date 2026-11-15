@@ -130,6 +130,8 @@ export function useSharedHealthData() {
         ? [{ id: `${today}:${medication.id}`, medicationId: medication.id, date: today, status: "TAKEN" as const, recordedAt: new Date().toISOString() }]
         : [],
     );
+    // Load browser-only localStorage after hydration, as recommended for Client Components.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDoseRecords(records);
     setMeds(withTodayStatus(savedMeds, records));
     setAppts(savedAppts.map((appointment) => ({ ...appointment, date: normalizeAppointmentDate(appointment.date) })));
@@ -139,7 +141,7 @@ export function useSharedHealthData() {
 
   const persistMeds = (next: Medication[]) => {
     setMeds(next);
-    save(MEDS_KEY, next.map(({ taken: _taken, takenAt: _takenAt, doseStatus: _doseStatus, ...medication }) => medication));
+    save(MEDS_KEY, next);
   };
 
   const markDose = (id: string, status: DoseStatus) => {

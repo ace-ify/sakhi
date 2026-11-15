@@ -7,7 +7,8 @@ const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
   try {
-    const { drugName } = await req.json();
+    const body = await req.json();
+    const drugName = body?.drugName || body?.drug;
     if (!drugName || typeof drugName !== "string") {
       return NextResponse.json({ error: "drugName is required" }, { status: 400 });
     }
