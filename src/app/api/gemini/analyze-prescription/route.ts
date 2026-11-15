@@ -12,13 +12,18 @@ export async function POST(req: NextRequest) {
   try {
     const { prescriptionText, imageBase64 } = await req.json();
 
+    if ((!prescriptionText || typeof prescriptionText !== "string" || !prescriptionText.trim()) &&
+        (!imageBase64 || typeof imageBase64 !== "string" || !imageBase64.trim())) {
+      return NextResponse.json({ error: "Provide a prescription image or text." }, { status: 400 });
+    }
+
     const prompt = `You are a clinical pharmacology AI assistant specialized in Indian geriatric prescription parsing (Parcha analysis).
 Analyze the following prescription text or image data and extract the structured regimen.
 Respond ONLY with a valid JSON object matching this schema, with no markdown code fences:
 {
-  "doctorName": "Doctor name or Dr. Arvind Sharma if unspecified",
+  "doctorName": "Doctor name, or empty string if unclear",
   "clinicOrHospital": "Hospital or clinic name",
-  "patientName": "Patient name or Prabha Devi",
+  "patientName": "Patient name, or empty string if unclear",
   "medications": [
     {
       "name": "Drug trade name",
@@ -33,7 +38,7 @@ Respond ONLY with a valid JSON object matching this schema, with no markdown cod
 }
 
 Prescription Content:
-${prescriptionText || "Rx: Tab Telmisartan 40mg 1-0-0 (Morning post breakfast), Tab Metformin 500mg 0-1-0 (Lunch), Tab Calcium D3 0-0-1 (Night with warm milk). Advice: Low sodium diet, BP check at 5 PM."}
+${prescriptionText || "See the attached image."}
 `;
 
     const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [

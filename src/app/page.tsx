@@ -8,7 +8,10 @@ import { AgentControlBar } from "@/components/agents-ui/agent-control-bar";
 import { AgentChatTranscript, type TranscriptMessage } from "@/components/agents-ui/agent-chat-transcript";
 import { AgentPopup } from "@/components/agents-ui/agent-popup";
 import { CaregiverPortalModal } from "@/components/caregiver/caregiver-portal-modal";
-import { formatAppointmentDate, useSharedHealthData } from "@/lib/medication-store";
+import { formatAppointmentDate, useSharedHealthData, type Appointment } from "@/lib/medication-store";
+import { WelcomeScreen } from "@/components/onboarding/welcome-screen";
+import { InteractiveTourGuide } from "@/components/tour/interactive-tour-guide";
+import { DoctorVisitBriefModal } from "@/components/caregiver/doctor-visit-brief-modal";
 import {
   Menu,
   Globe,
@@ -26,6 +29,8 @@ import {
   Upload,
   MessageSquare,
   ShieldCheck,
+  Sparkles,
+  Compass,
 } from "lucide-react";
 
 // Claude Code-style rotating status words (pure language specific)
@@ -57,9 +62,73 @@ export default function MobileVoiceApp() {
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [statusWordIndex, setStatusWordIndex] = useState(0);
 
+  // Interactive Onboarding & Evaluator Tour States
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
+  const [showTour, setShowTour] = useState(true);
+  const [currentTourStep, setCurrentTourStep] = useState(1);
+  const [completedTourSteps, setCompletedTourSteps] = useState<Record<number, boolean>>({
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+    5: false,
+  });
+  const [caregiverAutoAuth, setCaregiverAutoAuth] = useState(false);
+  const [activeBriefAppt, setActiveBriefAppt] = useState<Appointment | null>(null);
+  const [isBriefModalOpen, setIsBriefModalOpen] = useState(false);
+
   // Unified Shared Health & Medication Store (Syncs Dadi screen & Caregiver Portal)
   const { meds, appts, markDose, addMedication, updateMedication, removeMedication, addAppointment, updateAppointment, adherencePct, takenCount } = useSharedHealthData();
   const dueDose = meds.find((m) => !m.doseStatus);
+
+  const handleExecuteTourAction = async (stepId: number) => {
+    if (stepId === 1) {
+      handleTrigger(
+        language === "hi" ? "सुबह की बीपी दवा की स्थिति" : "Morning BP medication status",
+        language === "hi"
+          ? "आपकी टेल्मिसर्टन 40mg सुबह 9:00 बजे की थी। क्या आपने पानी के साथ ले ली?"
+          : "Your Telmisartan 40mg was scheduled for 9:00 AM. Have you taken it with water?"
+      );
+      setCompletedTourSteps((prev) => ({ ...prev, 1: true }));
+      setTimeout(() => setCurrentTourStep(2), 1800);
+    } else if (stepId === 2) {
+      if (dueDose) {
+        markDose(dueDose.id, "TAKEN");
+        handleTrigger(
+          language === "hi" ? `${dueDose.name} ले ली` : `Took ${dueDose.name}`,
+          language === "hi"
+            ? `शाबाश दादी! मैंने दर्ज कर लिया है कि आपने ${dueDose.name} ले ली है।`
+            : `Splendid Dadi! I recorded that you took your ${dueDose.name}.`
+        );
+      }
+      setCompletedTourSteps((prev) => ({ ...prev, 2: true }));
+      setTimeout(() => setCurrentTourStep(3), 1600);
+    } else if (stepId === 3) {
+      setCaregiverAutoAuth(true);
+      setIsCaregiverOpen(true);
+      setCompletedTourSteps((prev) => ({ ...prev, 3: true }));
+      setTimeout(() => setCurrentTourStep(4), 1200);
+    } else if (stepId === 4) {
+      setCaregiverAutoAuth(true);
+      setIsCaregiverOpen(true);
+      try {
+        await fetch("/api/safety/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ drugName: "valsatarin" }),
+        });
+        const inputEl = document.getElementById("tour-safety-input") as HTMLInputElement | null;
+        if (inputEl) inputEl.value = "valsatarin";
+      } catch {}
+      setCompletedTourSteps((prev) => ({ ...prev, 4: true }));
+      setTimeout(() => setCurrentTourStep(5), 1800);
+    } else if (stepId === 5) {
+      const targetAppt = appts[0] || null;
+      setActiveBriefAppt(targetAppt);
+      setIsBriefModalOpen(true);
+      setCompletedTourSteps((prev) => ({ ...prev, 5: true }));
+    }
+  };
 
   // Cycle Claude Code status words when thinking
   useEffect(() => {
@@ -252,12 +321,32 @@ export default function MobileVoiceApp() {
         </svg>
       </div>
 
-      {/* CENTRAL PHONE CONTAINER: Clean, Modern, Sleek Smartphone Frame */}
-      <div
-        className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[40px] sm:border sm:border-zinc-800/80 shadow-2xl transition-colors duration-500 mx-auto ${
-          isDark ? "bg-[#121214] text-zinc-100 sm:shadow-[0_25px_70px_rgba(0,0,0,0.85)]" : "bg-[#faf7f5] text-stone-900 sm:border-stone-300 sm:shadow-[0_25px_60px_rgba(0,0,0,0.2)]"
-        } ${isTransitioningTheme ? "theme-transition" : ""}`}
-      >
+      {/* DESKTOP WORKSPACE: Side-by-Side Flex Layout (Tour Guide in Left Space, Phone Centered) */}
+      <div className="relative z-10 flex flex-col lg:flex-row items-center justify-center gap-6 w-full max-w-6xl px-2 sm:px-4 py-2">
+        {/* DESKTOP SIDE: Interactive Evaluator Tour Guide */}
+        {showTour && (
+          <div className="hidden lg:block shrink-0">
+            <InteractiveTourGuide
+              currentStep={currentTourStep}
+              completedSteps={completedTourSteps}
+              onStepSelect={(id) => setCurrentTourStep(id)}
+              onExecuteAction={handleExecuteTourAction}
+              onCloseTour={() => setShowTour(false)}
+              onResetTour={() => {
+                setCompletedTourSteps({ 1: false, 2: false, 3: false, 4: false, 5: false });
+                setCurrentTourStep(1);
+              }}
+              language={language}
+            />
+          </div>
+        )}
+
+        {/* CENTRAL PHONE CONTAINER: Clean, Modern, Sleek Smartphone Frame */}
+        <div
+          className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[40px] sm:border sm:border-zinc-800/80 shadow-2xl transition-colors duration-500 mx-auto ${
+            isDark ? "bg-[#121214] text-zinc-100 sm:shadow-[0_25px_70px_rgba(0,0,0,0.85)]" : "bg-[#faf7f5] text-stone-900 sm:border-stone-300 sm:shadow-[0_25px_60px_rgba(0,0,0,0.2)]"
+          } ${isTransitioningTheme ? "theme-transition" : ""}`}
+        >
         {/* TOP HEADER: Clean & Breathable Navigation Bar (Dynamic Island Removed, All Buttons 100% Visible) */}
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between px-4 pt-1 shrink-0 transition-all duration-300 select-none">
           {/* Left: Hamburger Button & Branded Logo */}
@@ -316,6 +405,33 @@ export default function MobileVoiceApp() {
               title={language === "hi" ? "भाषा बदलें" : "Switch Language"}
             >
               <Globe className="size-4" />
+            </button>
+
+            {/* Evaluator Tour Guide Pill */}
+            <button
+              onClick={() => setShowTour((t) => !t)}
+              className={`flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold transition-colors cursor-pointer border ${
+                showTour
+                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/40"
+                  : isDark
+                  ? "bg-zinc-800/60 text-zinc-400 border-zinc-700/60 hover:text-zinc-200"
+                  : "bg-stone-200 text-stone-600 border-stone-300 hover:text-stone-900"
+              }`}
+              title="Toggle Interactive Evaluator Tour"
+            >
+              <Sparkles className="size-3 text-emerald-400" />
+              <span className="hidden xs:inline">Tour</span>
+            </button>
+
+            {/* Restart Onboarding Screen */}
+            <button
+              onClick={() => setShowWelcomeScreen(true)}
+              className={`flex size-7 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                isDark ? "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60" : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60"
+              }`}
+              title="Restart Demo Onboarding"
+            >
+              <Compass className="size-3.5" />
             </button>
 
             {/* SOS Emergency Button */}
@@ -786,7 +902,10 @@ export default function MobileVoiceApp() {
         {/* 4. PASSCODE-PROTECTED CAREGIVER & FAMILY PORTAL (DPDP 2023) */}
         <CaregiverPortalModal
           isOpen={isCaregiverOpen}
-          onClose={() => setIsCaregiverOpen(false)}
+          onClose={() => {
+            setIsCaregiverOpen(false);
+            setCaregiverAutoAuth(false);
+          }}
           isDark={isDark}
           language={language}
           meds={meds}
@@ -798,8 +917,37 @@ export default function MobileVoiceApp() {
           onUpdateAppt={updateAppointment}
           adherencePct={adherencePct}
           takenCount={takenCount}
+          onOpenVisitBrief={(appt) => {
+            setActiveBriefAppt(appt);
+            setIsBriefModalOpen(true);
+            setCompletedTourSteps((prev) => ({ ...prev, 5: true }));
+          }}
+          autoAuth={caregiverAutoAuth}
         />
       </div>
+
+      {/* 5. CLINICAL DOCTOR VISIT BRIEF MODAL */}
+      <DoctorVisitBriefModal
+        isOpen={isBriefModalOpen}
+        onClose={() => setIsBriefModalOpen(false)}
+        appointment={activeBriefAppt}
+        meds={meds}
+        adherencePct={adherencePct}
+        isDark={isDark}
+        language={language}
+      />
+
+      {/* 6. WELCOME ONBOARDING SCREEN ("Try Sakhi, No Sign-up") */}
+      {showWelcomeScreen && (
+        <WelcomeScreen
+          language={language}
+          onStartDemo={(withTour) => {
+            setShowWelcomeScreen(false);
+            setShowTour(withTour);
+          }}
+        />
+      )}
     </div>
-  );
+  </div>
+);
 }

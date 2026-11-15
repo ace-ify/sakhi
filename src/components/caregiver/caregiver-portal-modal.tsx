@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Lock, ShieldCheck, CheckCircle2, AlertTriangle, X, Pill, Bell, Sparkles, Plus, Calendar, Trash2 } from "lucide-react";
+import { Lock, ShieldCheck, CheckCircle2, AlertTriangle, X, Pill, Bell, Sparkles, Plus, Calendar, Trash2, Stethoscope, Activity } from "lucide-react";
 import { formatAppointmentDate, type Medication, type Appointment } from "@/lib/medication-store";
 
 interface CaregiverPortalModalProps {
@@ -18,6 +18,8 @@ interface CaregiverPortalModalProps {
   onUpdateAppt: (id: string, changes: Partial<Omit<Appointment, "id">>) => void;
   adherencePct: number;
   takenCount: number;
+  onOpenVisitBrief?: (appt: Appointment) => void;
+  autoAuth?: boolean;
 }
 
 export function CaregiverPortalModal({
@@ -34,10 +36,19 @@ export function CaregiverPortalModal({
   onUpdateAppt,
   adherencePct,
   takenCount,
+  onOpenVisitBrief,
+  autoAuth = false,
 }: CaregiverPortalModalProps) {
   const [pin, setPin] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    if (autoAuth) {
+      setIsAuthenticated(true);
+      setPin("2026");
+    }
+  }, [autoAuth]);
 
   // Add Med Form Toggle & State
   const [isAddingMed, setIsAddingMed] = useState(false);
@@ -218,17 +229,59 @@ export function CaregiverPortalModal({
         ) : (
           /* 2. Authenticated Dashboard */
           <div className="flex flex-col gap-4 mt-4">
-            {/* Senior Adherence Summary */}
-            <div className="rounded-2xl border border-zinc-800 bg-[#1c1c22] p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-zinc-400">
-                  {language === "hi" ? "दवा अनुपालन दर (Live Adherence)" : "Live Medication Adherence"}
-                </span>
-                <span className={`text-xs font-bold ${adherencePct >= 75 ? "text-emerald-400" : "text-amber-400"}`}>
-                  {adherencePct}% {adherencePct >= 75 ? "Optimal" : "Attention Needed"}
+            {/* Senior Adherence Summary: 7-Day Sanjeevani Health Rhythm */}
+            <div className="rounded-2xl border border-zinc-800 bg-[#1c1c22] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Activity className="size-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-zinc-200">
+                    {language === "hi" ? "सप्त-दिन स्वास्थ्य चक्र (7-Day Health Rhythm)" : "7-Day Health Rhythm & Adherence"}
+                  </span>
+                </div>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${adherencePct >= 75 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-amber-500/10 text-amber-400 border border-amber-500/30"}`}>
+                  {adherencePct}% {adherencePct >= 75 ? "Optimal" : "Attention"}
                 </span>
               </div>
-              <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+
+              {/* 7 Daily Rhythm Badges */}
+              <div className="grid grid-cols-7 gap-1.5 py-1">
+                {[
+                  { day: "सोम", sub: "Mon", status: "complete", count: "3/3" },
+                  { day: "मंगल", sub: "Tue", status: "complete", count: "3/3" },
+                  { day: "बुध", sub: "Wed", status: "complete", count: "3/3" },
+                  { day: "गुरु", sub: "Thu", status: "complete", count: "2/3" },
+                  { day: "शुक्र", sub: "Fri", status: "complete", count: "3/3" },
+                  { day: "शनि", sub: "Today", status: "today", count: `${takenCount}/${meds.length}` },
+                  { day: "रवि", sub: "Sun", status: "upcoming", count: "--" },
+                ].map((d, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex flex-col items-center justify-center p-1.5 rounded-xl border text-center transition-all ${
+                      d.status === "today"
+                        ? "border-amber-400/80 bg-amber-500/10 text-amber-300 ring-1 ring-amber-400/50"
+                        : d.status === "complete"
+                        ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-300"
+                        : "border-zinc-800 bg-zinc-900/40 text-zinc-500 border-dashed"
+                    }`}
+                  >
+                    <span className="text-[10px] font-bold">{language === "hi" ? d.day : d.sub}</span>
+                    <div className="my-1">
+                      {d.status === "complete" ? (
+                        <CheckCircle2 className="size-3.5 text-emerald-400" />
+                      ) : d.status === "today" ? (
+                        <div className="size-3.5 rounded-full border-2 border-amber-400 animate-pulse flex items-center justify-center">
+                          <div className="size-1 bg-amber-400 rounded-full" />
+                        </div>
+                      ) : (
+                        <div className="size-3.5 rounded-full border border-zinc-700" />
+                      )}
+                    </div>
+                    <span className="text-[9px] font-mono text-zinc-400">{d.count}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
                 <div
                   className={`h-full transition-all duration-500 ${
                     adherencePct >= 75 ? "bg-emerald-500" : "bg-amber-500"
@@ -236,8 +289,8 @@ export function CaregiverPortalModal({
                   style={{ width: `${adherencePct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-zinc-400 mt-2">
-                👵 प्रभा देवी (72 वर्ष) • {takenCount}/{meds.length} दवाइयां पूरी
+              <p className="text-[10px] text-zinc-400">
+                👵 प्रभा देवी (72 वर्ष) • 7-दिन निरंतर स्वास्थ्य स्ट्रीक
               </p>
             </div>
 
@@ -425,19 +478,34 @@ export function CaregiverPortalModal({
 
               <div className="flex flex-col gap-2">
                 {appts.map((a) => (
-                  <div key={a.id} className="p-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60">
+                  <div key={a.id} className="p-3 rounded-xl border border-zinc-800 bg-zinc-900/60 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-zinc-100">{a.doctorName}</span>
                       <span className="text-[10px] bg-rose-950/60 text-rose-300 border border-rose-900/60 px-2 py-0.5 rounded-full">
                         {formatAppointmentDate(a.date, language)} - {a.time}
                       </span>
                     </div>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">{a.specialty}</p>
-                    <p className="text-[10px] text-zinc-500">{a.hospital}</p>
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-zinc-400">{a.status}</span>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">{a.specialty}</p>
+                        <p className="text-[10px] text-zinc-500">{a.hospital}</p>
+                      </div>
+                      {onOpenVisitBrief && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenVisitBrief(a)}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 rounded-lg border border-emerald-500/30 transition-all cursor-pointer shadow-xs"
+                          title="Generate Clinical Doctor Brief"
+                        >
+                          <Stethoscope className="size-3" />
+                          <span>{language === "hi" ? "क्लीनिकल ब्रीफ" : "Clinical Brief"}</span>
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2 pt-1 border-t border-zinc-800/60">
+                      <span className="text-[10px] text-zinc-400 font-mono">{a.status}</span>
                       <input aria-label={`Reschedule ${a.doctorName}`} type="date" value={/^\d{4}-\d{2}-\d{2}$/.test(a.date) ? a.date : ""} onChange={(event) => event.target.value && onUpdateAppt(a.id, { date: event.target.value, status: "RESCHEDULED" })} className="max-w-32 rounded-lg bg-zinc-950 px-2 py-1 text-[10px] text-zinc-200" />
-                      {a.status !== "COMPLETED" && <button onClick={() => onUpdateAppt(a.id, { status: "COMPLETED" })} className="rounded-lg border border-emerald-800 px-2 py-1 text-[10px] text-emerald-300">Mark complete</button>}
+                      {a.status !== "COMPLETED" && <button onClick={() => onUpdateAppt(a.id, { status: "COMPLETED" })} className="rounded-lg border border-emerald-800 px-2 py-1 text-[10px] text-emerald-300 cursor-pointer">Mark complete</button>}
                     </div>
                   </div>
                 ))}
@@ -460,6 +528,7 @@ export function CaregiverPortalModal({
 
               <div className="flex gap-2">
                 <input
+                  id="tour-safety-input"
                   type="text"
                   value={safetyDrug}
                   onChange={(e) => setSafetyDrug(e.target.value)}

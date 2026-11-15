@@ -39,8 +39,7 @@ const DEFAULT_MEDS: Medication[] = [
   { id: "3", name: "Calcium D3", dosage: "500mg", time: "09:00 PM", instructions: "Before bed with milk", taken: false },
 ];
 
-function localDateKey(date?: Date) {
-  if (!date) return "2026-11-15";
+function localDateKey(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -48,7 +47,7 @@ function localDateKey(date?: Date) {
 }
 
 function dateAfter(days: number) {
-  const date = new Date(2026, 10, 15);
+  const date = new Date();
   date.setDate(date.getDate() + days);
   return localDateKey(date);
 }
