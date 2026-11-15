@@ -239,24 +239,24 @@ export default function MobileVoiceApp() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center bg-editorial-pattern p-2 sm:p-4 overflow-hidden select-none">
+    <div className="relative flex min-h-screen w-full items-center justify-center bg-[#09090b] bg-editorial-pattern p-0 sm:p-4 overflow-hidden select-none">
       {/* Background Subtle Ambient Wave Lines */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-25">
-        <svg className="absolute -left-20 top-1/4 w-[140%] text-white/20" viewBox="0 0 1200 120" fill="none">
-          <path d="M0 60 Q 150 0, 300 60 T 600 60 T 900 60 T 1200 60" stroke="currentColor" strokeWidth="3" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-20">
+        <svg className="absolute -left-20 top-1/4 w-[140%] text-white/10" viewBox="0 0 1200 120" fill="none">
+          <path d="M0 60 Q 150 0, 300 60 T 600 60 T 900 60 T 1200 60" stroke="currentColor" strokeWidth="2" />
         </svg>
       </div>
 
-      {/* CENTRAL PHONE CONTAINER: Optimized for iPhone 16 Pro Max (430x932 Viewport) */}
+      {/* CENTRAL PHONE CONTAINER: Pixel-Perfect for iPhone 16 Pro Max & Responsive Mobile */}
       <div
-        className={`relative z-10 flex h-[100dvh] sm:h-[94vh] sm:max-h-[932px] w-full sm:max-w-[430px] flex-col overflow-hidden rounded-none sm:rounded-[50px] border shadow-2xl transition-colors duration-500 ${
+        className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[48px] sm:border sm:border-zinc-800/90 shadow-2xl transition-colors duration-500 mx-auto ${
           isDark
-            ? "bg-[#121214] text-zinc-100 border-[#2c2c2e] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
-            : "bg-[#faf7f5] text-stone-900 border-stone-300 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)]"
+            ? "bg-[#121214] text-zinc-100 sm:shadow-[0_25px_70px_rgba(0,0,0,0.85)]"
+            : "bg-[#faf7f5] text-stone-900 sm:border-stone-300 sm:shadow-[0_25px_60px_rgba(0,0,0,0.2)]"
         } ${isTransitioningTheme ? "theme-transition" : ""}`}
       >
         {/* TOP HEADER: Clean & Breathable */}
-        <header className="flex h-14 items-center justify-between px-5 pt-2 shrink-0 z-20">
+        <header className="flex h-14 items-center justify-between px-4 pt-1 shrink-0 z-20">
           {/* Left: Hamburger Button & Branded Logo */}
           <div className="flex items-center gap-2.5">
             <button
@@ -327,24 +327,24 @@ export default function MobileVoiceApp() {
           </div>
         </header>
 
-        {/* MAIN BODY AREA: Vertically Balanced & Optimized */}
-        <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-2">
+        {/* MAIN BODY AREA: Pixel-Perfect Vertical Balance */}
+        <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-1 min-h-0">
           
-          {/* HOME VIEW: Balanced Two-Tier Layout (No Awkward Void) */}
+          {/* HOME VIEW: Two Balanced Tiers (No Void, Never Pushes Bar Off Screen) */}
           {!isChatTranscriptOpen ? (
-            <div className="flex flex-1 flex-col justify-between py-1 animate-in fade-in duration-300">
+            <div className="flex flex-1 flex-col justify-between py-1 min-h-0 overflow-hidden animate-in fade-in duration-300">
               
-              {/* UPPER HALF: Majestic Centered Living Orb */}
-              <div className="flex flex-1 flex-col items-center justify-center py-2 min-h-[220px]">
+              {/* UPPER SECTION: Centered Majestic Living Orb */}
+              <div className="flex flex-1 flex-col items-center justify-center py-2 min-h-0">
                 <div
                   style={{
-                    transform: "scale(1.15)",
+                    transform: "scale(1)",
                     transformOrigin: "center center",
                   }}
                   className="relative flex items-center justify-center shrink-0 my-auto"
                 >
                   <div
-                    className={`absolute -inset-8 rounded-full blur-3xl transition-opacity duration-700 pointer-events-none ${
+                    className={`absolute -inset-6 rounded-full blur-2xl transition-opacity duration-700 pointer-events-none ${
                       orbState === "listening"
                         ? "bg-rose-500/25 opacity-100"
                         : orbState === "thinking"
@@ -358,9 +358,9 @@ export default function MobileVoiceApp() {
                 </div>
 
                 {/* Subtle Breathing Status Cue */}
-                <div className="mt-3 text-center">
+                <div className="mt-2 text-center shrink-0">
                   <span
-                    className={`text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
+                    className={`text-[11px] font-mono font-medium tracking-wide transition-opacity duration-300 ${
                       orbState === "thinking"
                         ? "text-amber-400 animate-pulse"
                         : orbState === "listening"
@@ -381,33 +381,33 @@ export default function MobileVoiceApp() {
                 </div>
               </div>
 
-              {/* LOWER HALF: Polished iOS-Style Action Cards */}
-              <div className="w-full shrink-0 pt-2 pb-1">
+              {/* LOWER SECTION: Clean iOS-Style Action Pills */}
+              <div className="w-full shrink-0 pt-1 pb-1">
                 <div className="mb-2">
-                  <h2 className={`text-base font-bold tracking-tight ${isDark ? "text-zinc-100" : "text-stone-900"}`}>
+                  <h2 className={`text-sm font-bold tracking-tight ${isDark ? "text-zinc-100" : "text-stone-900"}`}>
                     {language === "hi" ? "नमस्ते!" : "Good Morning!"}
                   </h2>
-                  <p className={`text-[11px] ${isDark ? "text-zinc-400" : "text-stone-500"}`}>
-                    {language === "hi" ? "दैनिक स्वास्थ्य सहायता के लिए चुनें" : "Quick access health prompts"}
+                  <p className={`text-[10px] ${isDark ? "text-zinc-500" : "text-stone-500"}`}>
+                    {language === "hi" ? "दैनिक स्वास्थ्य सहायता के लिए चुनें" : "Quick health prompts"}
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {minimalPrompts.map((p, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleTrigger(p.text, p.reply)}
-                      className={`flex w-full items-center justify-between rounded-2xl px-3.5 py-2.5 text-left transition-all duration-200 cursor-pointer border ${
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-all duration-200 cursor-pointer border ${
                         isDark
-                          ? "bg-[#18181c]/80 hover:bg-[#202026] border-zinc-800/80 hover:border-zinc-700 text-zinc-200 shadow-xs active:scale-[0.99]"
-                          : "bg-white/80 hover:bg-white border-stone-200/90 text-stone-800 shadow-xs active:scale-[0.99]"
+                          ? "bg-[#18181c]/90 hover:bg-[#202026] border-zinc-800/80 hover:border-zinc-700 text-zinc-200 shadow-xs active:scale-[0.99]"
+                          : "bg-white hover:bg-stone-50 border-stone-200/90 text-stone-800 shadow-xs active:scale-[0.99]"
                       }`}
                     >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <span className="text-sm shrink-0 select-none">{p.icon}</span>
+                      <div className="flex items-center gap-2.5 overflow-hidden">
+                        <span className="text-xs shrink-0 select-none">{p.icon}</span>
                         <span className="text-xs font-medium tracking-tight truncate">{p.text}</span>
                       </div>
-                      <span className={`text-xs font-mono shrink-0 ml-2 ${isDark ? "text-zinc-500" : "text-stone-400"}`}>
+                      <span className={`text-[11px] font-mono shrink-0 ml-1.5 ${isDark ? "text-zinc-500" : "text-stone-400"}`}>
                         →
                       </span>
                     </button>
@@ -417,12 +417,12 @@ export default function MobileVoiceApp() {
             </div>
           ) : (
             /* CHAT VIEW: Clean Centered Orb at Top, Scrolling Transcript Below */
-            <div className="flex flex-1 flex-col overflow-hidden animate-in fade-in duration-300">
+            <div className="flex flex-1 flex-col overflow-hidden animate-in fade-in duration-300 min-h-0">
               {/* Top Centered Orb */}
               <div className="w-full flex flex-col items-center justify-center pt-1 pb-1 shrink-0 z-10">
                 <div
                   style={{
-                    transform: "scale(0.7)",
+                    transform: "scale(0.68)",
                     transformOrigin: "center center",
                     transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
                   }}
@@ -443,7 +443,7 @@ export default function MobileVoiceApp() {
                 </div>
 
                 <span
-                  className={`mt-1 text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
+                  className={`mt-1 text-[11px] font-mono font-medium tracking-wide transition-opacity duration-300 ${
                     orbState === "thinking"
                       ? "text-amber-400 animate-pulse"
                       : orbState === "listening"
