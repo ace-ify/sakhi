@@ -24,7 +24,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-// Claude Code-style rotating status words (pure Hindi / pure English)
+// Claude Code-style rotating status words (strict single language)
 const THINKING_WORDS_HI = ["जांच जारी है...", "पर्चा समझ रहा हूँ...", "दवा मिला रहा हूँ...", "तैयार कर रहा हूँ..."];
 const THINKING_WORDS_EN = ["Analyzing...", "Synthesizing...", "Verifying...", "Retrieving EHR..."];
 
@@ -36,13 +36,16 @@ export default function MobileVoiceApp() {
   // Language state: "hi" (Strict pure Hindi) | "en" (Strict pure English)
   const [language, setLanguage] = useState<"hi" | "en">("hi");
 
-  // App & Conversation states
+  // Call & Voice states
+  const [isCallConnected, setIsCallConnected] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
   const [orbState, setOrbState] = useState<VoiceState>("idle");
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
+
+  // UI state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isApptOpen, setIsApptOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false); // Controls chat transcript drawer
+  const [isChatOpen, setIsChatOpen] = useState(false); // Controls chat transcript expansion
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [statusWordIndex, setStatusWordIndex] = useState(0);
 
@@ -65,11 +68,12 @@ export default function MobileVoiceApp() {
     }, 850);
   };
 
-  // Start fresh chat (resets cleanly to full-screen Orb)
+  // Start fresh chat / reset
   const startNewChat = () => {
     setMessages([]);
     setIsChatOpen(false);
-    setIsVoiceActive(false);
+    setIsCallConnected(false);
+    setIsMicMuted(false);
     setOrbState("idle");
   };
 
@@ -91,6 +95,7 @@ export default function MobileVoiceApp() {
   // Execute a prompt
   const handleTrigger = (promptText: string, replyText: string) => {
     setIsChatOpen(true);
+    setIsCallConnected(true);
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     const userMsg: TranscriptMessage = {
@@ -115,35 +120,52 @@ export default function MobileVoiceApp() {
 
       setTimeout(() => {
         setOrbState("idle");
-        setIsVoiceActive(false);
       }, 5000);
     }, 1200);
   };
 
-  // Toggle Voice / Tap Orb / Control Bar Mic
-  const toggleVoice = () => {
-    if (isVoiceActive) {
-      setIsVoiceActive(false);
-      setOrbState("idle");
-    } else {
-      setIsVoiceActive(true);
-      setOrbState("listening");
+  // Start Call (Right Button in Control Bar)
+  const handleStartCall = () => {
+    setIsCallConnected(true);
+    setIsMicMuted(false);
+    setOrbState("listening");
 
-      // Auto trigger demo if user doesn't interrupt
-      setTimeout(() => {
-        if (isVoiceActive || orbState === "listening") {
-          handleTrigger(
-            language === "hi" ? "नमस्ते, क्या आज की कोई दवा बाकी है?" : "Hello, any pending medication today?",
-            language === "hi"
-              ? "नमस्ते! सुबह की दवा पूरी हो चुकी है। अगली खुराक दोपहर 1:30 बजे मेटफॉर्मिन की है।"
-              : "Hello! Morning BP medicine is recorded. Next dose is Metformin at 1:30 PM post lunch."
-          );
-        }
-      }, 3500);
+    // Auto demo reply if user stays quiet
+    setTimeout(() => {
+      if (orbState === "listening" || isCallConnected) {
+        handleTrigger(
+          language === "hi" ? "नमस्ते, क्या आज की कोई दवा बाकी है?" : "Hello, any pending medication today?",
+          language === "hi"
+            ? "नमस्ते! सुबह की दवा पूरी हो चुकी है। अगली खुराक दोपहर 1:30 बजे मेटफॉर्मिन की है।"
+            : "Hello! Morning BP medicine is recorded. Next dose is Metformin at 1:30 PM post lunch."
+        );
+      }
+    }, 3500);
+  };
+
+  // End Call (Right Button in Control Bar)
+  const handleEndCall = () => {
+    setIsCallConnected(false);
+    setIsMicMuted(true);
+    setOrbState("idle");
+  };
+
+  // Toggle Mic (Left Button in Control Bar)
+  const handleToggleMic = () => {
+    if (!isCallConnected) {
+      handleStartCall();
+      return;
+    }
+    if (isMicMuted) {
+      setIsMicMuted(false);
+      setOrbState("listening");
+    } else {
+      setIsMicMuted(true);
+      setOrbState("idle");
     }
   };
 
-  // Submit message from LiveKit Agent Control Bar
+  // Submit message from text box
   const handleSendMessage = (text: string) => {
     handleTrigger(
       text,
@@ -202,13 +224,9 @@ export default function MobileVoiceApp() {
             : "bg-[#faf7f5] text-stone-900 border-stone-300 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)]"
         } ${isTransitioningTheme ? "theme-transition" : ""}`}
       >
-        {/* TOP HEADER: Sidebar + Branded Logo (Left) | New Chat, Monochrome Theme, Globe, SOS (Right) */}
-        <header
-          className={`flex h-14 items-center justify-between px-4 pt-1 shrink-0 z-20 border-b transition-colors ${
-            isDark ? "border-zinc-800/80 bg-[#121214]/95" : "border-stone-200/80 bg-[#faf7f5]/95"
-          }`}
-        >
-          {/* Left: Hamburger Button & Branded Logo (Sakhi / सखी) */}
+        {/* TOP HEADER: Seamless & Breathable (NO harsh horizontal divider line) */}
+        <header className="flex h-14 items-center justify-between px-5 pt-2 shrink-0 z-20">
+          {/* Left: Hamburger Button & Branded Logo */}
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -232,7 +250,7 @@ export default function MobileVoiceApp() {
           </div>
 
           {/* Right Action Icons */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {/* New Chat Button */}
             <button
               onClick={startNewChat}
@@ -278,29 +296,30 @@ export default function MobileVoiceApp() {
           </div>
         </header>
 
-        {/* MAIN BODY AREA WITH UNIFIED PERSISTENT ORB & FLUID TRANSITIONS */}
-        <div className="relative flex flex-1 flex-col overflow-hidden px-4 py-2">
+        {/* MAIN BODY AREA WITH CONTINUOUS FLUID ORB TRANSITION */}
+        <div className="relative flex flex-1 flex-col overflow-hidden px-4 pb-2">
           
-          {/* PERSISTENT LIVING VOICE ORB CONTAINER (Glides smoothly between center & top bar) */}
+          {/* ORB SECTION: Spacious, positioned comfortably down, NO harsh lines */}
           <div
-            className={`w-full flex items-center transition-all duration-500 ease-in-out shrink-0 ${
-              isChatOpen
-                ? "h-14 justify-between border-b pb-2 mb-1"
-                : "h-[56%] justify-center flex-col my-auto"
-            } ${
-              isDark ? "border-zinc-800/80" : "border-stone-200/80"
-            }`}
+            style={{
+              transform: isChatOpen ? "translate3d(0, 4px, 0)" : "translate3d(0, 52px, 0)",
+              transition: "transform 650ms cubic-bezier(0.25, 1, 0.5, 1)",
+            }}
+            className="w-full flex items-center justify-between shrink-0 z-10"
           >
             {/* Orb + Claude Status Wrapper */}
-            <div className={`flex items-center transition-all duration-500 ${isChatOpen ? "gap-2" : "flex-col"}`}>
-              {/* Orb with fluid scale and reposition */}
+            <div className="flex items-center gap-3">
+              {/* Scaled living watercolor orb (Spacious 0.82 in compact, 1.0 in center) */}
               <div
-                className={`relative flex items-center justify-center transition-transform duration-500 ease-in-out origin-center ${
-                  isChatOpen ? "scale-[0.62] origin-left" : "scale-100"
-                }`}
+                style={{
+                  transform: isChatOpen ? "scale(0.82)" : "scale(1)",
+                  transformOrigin: "left center",
+                  transition: "transform 650ms cubic-bezier(0.25, 1, 0.5, 1)",
+                }}
+                className="relative flex items-center justify-center shrink-0"
               >
                 <div
-                  className={`absolute -inset-8 rounded-full blur-2xl transition-opacity duration-700 pointer-events-none ${
+                  className={`absolute -inset-6 rounded-full blur-2xl transition-opacity duration-700 pointer-events-none ${
                     orbState === "listening"
                       ? "bg-rose-500/25 opacity-100"
                       : orbState === "thinking"
@@ -310,39 +329,33 @@ export default function MobileVoiceApp() {
                       : "bg-teal-500/10 opacity-60"
                   }`}
                 />
-                <LivingVoiceOrb state={orbState} onActivate={toggleVoice} />
+                <LivingVoiceOrb state={orbState} onActivate={handleToggleMic} />
               </div>
 
-              {/* Claude Code-style Status Word with "..." */}
-              <div
-                className={`flex transition-all duration-300 ${
-                  isChatOpen ? "flex-col" : "mt-4 h-6 items-center justify-center text-center"
-                }`}
-              >
-                {(orbState !== "idle" || isChatOpen) && (
-                  <span
-                    className={`text-xs font-mono font-medium tracking-wide ${
-                      orbState === "thinking"
-                        ? "text-amber-400 animate-pulse"
-                        : orbState === "listening"
-                        ? "text-rose-400 animate-pulse"
-                        : orbState === "speaking"
-                        ? "text-emerald-400 animate-pulse"
-                        : isDark
-                        ? "text-zinc-400"
-                        : "text-stone-600"
-                    }`}
-                  >
-                    {getStatusWord()}
-                  </span>
-                )}
+              {/* Status Word Beside Orb */}
+              <div className="flex flex-col">
+                <span
+                  className={`text-xs font-mono font-medium tracking-wide transition-opacity duration-300 ${
+                    orbState === "thinking"
+                      ? "text-amber-400 animate-pulse"
+                      : orbState === "listening"
+                      ? "text-rose-400 animate-pulse"
+                      : orbState === "speaking"
+                      ? "text-emerald-400 animate-pulse"
+                      : isDark
+                      ? "text-zinc-400"
+                      : "text-stone-600"
+                  }`}
+                >
+                  {getStatusWord()}
+                </span>
                 {isChatOpen && (
                   <span className="text-[10px] text-zinc-500">{language === "hi" ? "सखी साथी" : "Sakhi Companion"}</span>
                 )}
               </div>
             </div>
 
-            {/* Collapse Chat Button (Visible only when chat is open) */}
+            {/* Collapse Chat Button (Visible when chat transcript is open) */}
             {isChatOpen && (
               <button
                 onClick={() => setIsChatOpen(false)}
@@ -359,12 +372,12 @@ export default function MobileVoiceApp() {
             )}
           </div>
 
-          {/* TRANSCRIPT AREA (Smoothly expands when isChatOpen is true) */}
+          {/* CHAT TRANSCRIPT AREA (Smooth fade and slide) */}
           <div
-            className={`w-full flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${
+            className={`w-full flex-1 flex flex-col overflow-hidden pt-3 transition-all duration-500 ease-in-out ${
               isChatOpen
-                ? "flex-1 opacity-100 translate-y-0"
-                : "max-h-0 opacity-0 pointer-events-none translate-y-4"
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 pointer-events-none translate-y-6 hidden"
             }`}
           >
             <AgentChatTranscript
@@ -375,13 +388,15 @@ export default function MobileVoiceApp() {
             />
           </div>
 
-          {/* LOWER SECTION: Minimalist Suggested Prompts (Visible when no chat active) */}
+          {/* LOWER SECTION: Minimalist Prompts (Visible when chat transcript is not open) */}
           <div
-            className={`w-full pb-2 transition-all duration-400 ease-in-out ${
-              !isChatOpen && messages.length === 0
-                ? "opacity-100 translate-y-0"
-                : "max-h-0 opacity-0 pointer-events-none overflow-hidden"
-            }`}
+            style={{
+              opacity: !isChatOpen && messages.length === 0 ? 1 : 0,
+              transform: !isChatOpen && messages.length === 0 ? "translate3d(0, 0, 0)" : "translate3d(0, 20px, 0)",
+              transition: "opacity 400ms ease, transform 400ms ease",
+              pointerEvents: !isChatOpen && messages.length === 0 ? "auto" : "none",
+            }}
+            className={`w-full mt-auto pb-3 ${isChatOpen ? "hidden" : "block"}`}
           >
             <div className="mb-2">
               <h2
@@ -393,7 +408,7 @@ export default function MobileVoiceApp() {
               </h2>
             </div>
 
-            {/* Clean, minimalist single-line items */}
+            {/* Clean, minimalist single-line items matching ChatGPT reference */}
             <div className="space-y-1.5">
               {minimalPrompts.map((p, idx) => (
                 <button
@@ -412,9 +427,9 @@ export default function MobileVoiceApp() {
             </div>
           </div>
 
-          {/* VIEW CHAT FLOATING PILL (When messages exist but chat was minimized) */}
+          {/* VIEW CHAT FLOATING PILL (When messages exist but transcript was minimized) */}
           {!isChatOpen && messages.length > 0 && (
-            <div className="flex justify-center pb-2 animate-fade-in">
+            <div className="flex justify-center mt-auto pb-2 animate-fade-in">
               <button
                 onClick={() => setIsChatOpen(true)}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border shadow-xs transition-colors cursor-pointer ${
@@ -431,23 +446,17 @@ export default function MobileVoiceApp() {
           )}
         </div>
 
-        {/* BOTTOM LIVEKIT AGENT CONTROL BAR (Inline Text Input Embedded Inside) */}
-        <div className="px-4 pb-4 pt-1 shrink-0 z-20">
+        {/* BOTTOM OFFICIAL LIVEKIT AGENT CONTROL BAR (Exact match to Screenshot 1) */}
+        <div className="px-3 pb-3 pt-1 shrink-0 z-20">
           <AgentControlBar
             isChatOpen={isChatOpen}
-            isConnected={true}
-            isMicMuted={!isVoiceActive}
-            onToggleMic={toggleVoice}
+            isCallConnected={isCallConnected}
+            isMicMuted={isMicMuted}
+            onToggleMic={handleToggleMic}
             onToggleChat={() => setIsChatOpen(!isChatOpen)}
-            onDisconnect={startNewChat}
+            onStartCall={handleStartCall}
+            onEndCall={handleEndCall}
             onSendMessage={handleSendMessage}
-            controls={{
-              microphone: true,
-              chat: true,
-              leave: true,
-              camera: false,
-              screenShare: false,
-            }}
             isDark={isDark}
             language={language}
           />
@@ -685,7 +694,7 @@ export default function MobileVoiceApp() {
               isDark={isDark}
               language={language}
               featureContext={language === "hi" ? "डॉक्टर अपॉइंटमेंट" : "Appointments"}
-              onTriggerVoice={toggleVoice}
+              onTriggerVoice={handleToggleMic}
             />
           </div>
         )}
@@ -741,7 +750,7 @@ export default function MobileVoiceApp() {
               isDark={isDark}
               language={language}
               featureContext={language === "hi" ? "पर्चा रिकॉर्ड" : "Prescription"}
-              onTriggerVoice={toggleVoice}
+              onTriggerVoice={handleToggleMic}
             />
           </div>
         )}

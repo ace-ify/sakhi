@@ -114,13 +114,12 @@ export function AgentPopup({
           <div className="p-2 border-t border-zinc-800/80">
             <AgentControlBar
               isChatOpen={true}
-              isConnected={true}
+              isCallConnected={true}
               onSendMessage={handleSend}
               onToggleMic={() => {
                 if (onTriggerVoice) onTriggerVoice();
               }}
-              onDisconnect={() => setIsOpen(false)}
-              controls={{ microphone: true, chat: false, leave: true, camera: false, screenShare: false }}
+              onEndCall={() => setIsOpen(false)}
               isDark={isDark}
               language={language}
             />
