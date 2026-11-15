@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import LivingVoiceOrb from "@/components/ui/orb-bloop";
 import type { VoiceState } from "@/types/voice";
 import { Iphone16Pro } from "@/components/ui/iphone-16-pro";
 import { AgentControlBar } from "@/components/agents-ui/agent-control-bar";
 import { AgentChatTranscript, type TranscriptMessage } from "@/components/agents-ui/agent-chat-transcript";
 import { AgentPopup } from "@/components/agents-ui/agent-popup";
+import { PrescriptionReview } from "@/components/prescription-review";
 import { CaregiverPortalModal } from "@/components/caregiver/caregiver-portal-modal";
 import { formatAppointmentDate, useSharedHealthData, type Appointment } from "@/lib/medication-store";
 import { WelcomeScreen } from "@/components/onboarding/welcome-screen";
-import { InteractiveTourGuide } from "@/components/tour/interactive-tour-guide";
+import { AvatarTourGuide } from "@/components/tour/avatar-tour-guide";
 import { DoctorVisitBriefModal } from "@/components/caregiver/doctor-visit-brief-modal";
 import {
   Menu,
@@ -78,7 +79,7 @@ export default function MobileVoiceApp() {
   const [isBriefModalOpen, setIsBriefModalOpen] = useState(false);
 
   // Unified Shared Health & Medication Store (Syncs Dadi screen & Caregiver Portal)
-  const { meds, appts, markDose, addMedication, updateMedication, removeMedication, addAppointment, updateAppointment, adherencePct, takenCount } = useSharedHealthData();
+  const { meds, appts, doseRecords, syncStatus, markDose, addMedication, addMedications, updateMedication, removeMedication, addAppointment, updateAppointment, adherencePct, takenCount } = useSharedHealthData();
   const dueDose = meds.find((m) => !m.doseStatus);
 
   const handleExecuteTourAction = async (stepId: number) => {
@@ -174,9 +175,71 @@ export default function MobileVoiceApp() {
         { icon: "💧", text: "Hydration and BP check time", reply: "Please drink a glass of warm water. Your evening BP check is set for 5:00 PM." },
       ];
 
+  // Spoken Audio Output via Web Speech Synthesis (TTS)
+  const speakText = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === "hi" ? "hi-IN" : "en-IN";
+      utterance.rate = 0.95;
+      utterance.pitch = 1.05;
+      utterance.onstart = () => setOrbState("speaking");
+      utterance.onend = () => setOrbState("idle");
+      utterance.onerror = () => setOrbState("idle");
+      window.speechSynthesis.speak(utterance);
+    } catch {}
+  };
+
+  // Web Speech API Microphone Speech-To-Text (STT)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRec =
+      (window as unknown as { SpeechRecognition?: any }).SpeechRecognition ||
+      (window as unknown as { webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+
+    if (!SpeechRec) return;
+
+    let recognition: any = null;
+    try {
+      recognition = new SpeechRec();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = language === "hi" ? "hi-IN" : "en-US";
+
+      recognition.onstart = () => {
+        setOrbState("listening");
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        if (transcript && transcript.trim()) {
+          void handleSendMessage(transcript.trim());
+        }
+      };
+
+      recognition.onerror = () => {
+        if (orbState === "listening") setOrbState("idle");
+      };
+
+      recognition.onend = () => {
+        if (orbState === "listening") setOrbState("idle");
+      };
+
+      if (isCallConnected && !isMicMuted) {
+        recognition.start();
+      }
+    } catch {}
+
+    return () => {
+      if (recognition) {
+        try { recognition.stop(); } catch {}
+      }
+    };
+  }, [isCallConnected, isMicMuted, language]);
+
   // Execute a prompt or send text message
   const handleTrigger = (promptText: string, replyText: string) => {
-    // When text is sent, open both the text bar and the full transcript!
     setIsTextInputOpen(true);
     setIsChatTranscriptOpen(true);
     setIsCallConnected(true);
@@ -202,18 +265,11 @@ export default function MobileVoiceApp() {
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, agentMsg]);
-
-      setTimeout(() => {
-        setOrbState("idle");
-      }, 5000);
-    }, 1200);
+      speakText(replyText);
+    }, 900);
   };
 
   // Chat Button toggle logic:
-  // - If chat transcript is currently open -> close both transcript & text input (return to clean home screen)
-  // - If transcript is closed:
-  //   * If existing chat history exists -> open BOTH transcript & text input!
-  //   * If no chat history yet -> toggle text input box only!
   const handleToggleChatButton = () => {
     if (isChatTranscriptOpen) {
       setIsChatTranscriptOpen(false);
@@ -249,15 +305,17 @@ export default function MobileVoiceApp() {
 
   // End Call (Right Button in Control Bar: END)
   const handleEndCall = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     setIsCallConnected(false);
-    setIsMicMuted(true); // Always return to muted when call ends!
+    setIsMicMuted(true);
     setOrbState("idle");
   };
 
   // Toggle Mic (Left Button in Control Bar: Mic toggle)
-  // Strictly toggles audio input mute state without hijacking agent state or interrupting
   const handleToggleMic = () => {
-    if (!isCallConnected) return; // Only operates when call is active
+    if (!isCallConnected) return;
     setIsMicMuted((prev) => !prev);
   };
 
@@ -270,33 +328,58 @@ export default function MobileVoiceApp() {
     }
   };
 
-  // Send query typed in Control Bar
-  const handleSendMessage = (text: string) => {
-    handleTrigger(
+  // Send query typed in Control Bar -> connected to live Google Gemini / Groq NLP!
+  const handleSendMessage = async (text: string) => {
+    setIsTextInputOpen(true);
+    setIsChatTranscriptOpen(true);
+    setIsCallConnected(true);
+
+    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const userMsg: TranscriptMessage = {
+      id: Date.now().toString(),
+      sender: "user",
       text,
-      language === "hi"
-        ? `मैंने आपका संदेश दर्ज कर लिया है: "${text}"। स्वास्थ्य रिकॉर्ड सुरक्षित है।`
-        : `Recorded your query: "${text}". Health journal is up to date.`
-    );
+      time: timeStr,
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setOrbState("thinking");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, language }),
+      });
+      const data = await res.json();
+      const reply = data.reply || (language === "hi" ? "जी दादी, मैंने दर्ज कर लिया है।" : "Yes Dadi, recorded.");
+
+      setOrbState("speaking");
+      const agentMsg: TranscriptMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: "agent",
+        text: reply,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, agentMsg]);
+      speakText(reply);
+    } catch {
+      setOrbState("idle");
+    }
   };
 
   // SOS Emergency Alert
-  const triggerEmergency = () => {
-    setOrbState("emergency_active");
-    fetch("/api/notify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipient: "prashant.caregiver@example.com",
-        patientName: "Prabha Devi",
-        type: "SOS_EMERGENCY",
-        details: "Emergency SOS triggered on Sakhi elderly device.",
-      }),
-    }).catch(console.error);
+  const sendCareAlert = useCallback(async (type: string, details: string, channel: "email" | "call" | "both" = "both") => {
+    try {
+      const response = await fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type, details, channel }) });
+      const result = await response.json();
+      return response.ok && result.success;
+    } catch { return false; }
+  }, []);
 
-    setTimeout(() => {
-      alert(language === "hi" ? "🚨 आपातकालीन अलर्ट: प्रशांत को फोन व संदेश भेजा गया।" : "🚨 SOS ALERT: Caregiver notified via SMS & Phone.");
-    }, 300);
+  const triggerEmergency = async () => {
+    setOrbState("emergency_active");
+    const sent = await sendCareAlert("SOS_EMERGENCY", "Emergency SOS triggered on Sakhi elderly device.");
+    alert(sent ? "Caregiver alert accepted by a configured provider." : "Alert could not be sent. Please call your caregiver directly.");
   };
 
   // Get Claude Code-style Status Word
@@ -323,10 +406,10 @@ export default function MobileVoiceApp() {
 
       {/* DESKTOP WORKSPACE: Side-by-Side Flex Layout (Tour Guide in Left Space, Phone Centered) */}
       <div className="relative z-10 flex flex-col lg:flex-row items-center justify-center gap-6 w-full max-w-6xl px-2 sm:px-4 py-2">
-        {/* DESKTOP SIDE: Interactive Evaluator Tour Guide */}
+        {/* DESKTOP SIDE: Interactive Evaluator Tour Guide with Animated Avatar */}
         {showTour && (
           <div className="hidden lg:block shrink-0">
-            <InteractiveTourGuide
+            <AvatarTourGuide
               currentStep={currentTourStep}
               completedSteps={completedTourSteps}
               onStepSelect={(id) => setCurrentTourStep(id)}
@@ -526,6 +609,7 @@ export default function MobileVoiceApp() {
                       <button
                         onClick={() => {
                           markDose(dueDose.id, "SKIPPED");
+                          void sendCareAlert("DOSE_SKIPPED", `${dueDose.name} ${dueDose.dosage} was marked not taken.`);
                           handleTrigger(
                             language === "hi" ? `${dueDose.name} अभी नहीं ली` : `Skipped ${dueDose.name}`,
                             language === "hi"
@@ -863,30 +947,7 @@ export default function MobileVoiceApp() {
               </button>
             </div>
 
-            <div
-              className={`mt-4 flex-1 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center ${
-                isDark ? "border-zinc-700 bg-[#202025]" : "border-stone-300 bg-stone-50"
-              }`}
-            >
-              <div className="flex size-14 items-center justify-center rounded-full bg-amber-500/10 text-amber-400 mb-3">
-                <FileText className="size-7" />
-              </div>
-              <h4 className="text-xs font-semibold">{language === "hi" ? "पर्चा या दवाई की फोटो खींचें" : "Take photo of prescription or medicine"}</h4>
-              <p className="text-[11px] text-zinc-500 mt-1 max-w-[220px]">
-                {language === "hi" ? "दवा का नाम व खुराक अपने आप लॉक हो जाएगी।" : "Dosage and medicine will be automatically verified."}
-              </p>
-
-              <button
-                onClick={() => {
-                  alert(language === "hi" ? "पर्चा सफलतापूर्वक सत्यापित हुआ।" : "Prescription verified successfully.");
-                  setIsUploadOpen(false);
-                  handleTrigger("नया पर्चा स्कैन किया", "पर्चा सुरक्षित रूप से पढ़ लिया गया है। दवाइयों के रिमाइंडर सेट हैं।");
-                }}
-                className="mt-5 rounded-full bg-amber-500 hover:bg-amber-400 text-stone-900 px-5 py-2 text-xs font-semibold shadow-md transition-colors cursor-pointer"
-              >
-                {language === "hi" ? "स्कैन व वेरीफाई करें" : "Scan & Verify"}
-              </button>
-            </div>
+            <PrescriptionReview onSave={(items) => { addMedications(items); setIsUploadOpen(false); }} />
 
             {/* In-Feature LiveKit Floating Assistant Popup */}
             <AgentPopup
@@ -901,6 +962,8 @@ export default function MobileVoiceApp() {
 
         {/* 4. PASSCODE-PROTECTED CAREGIVER & FAMILY PORTAL (DPDP 2023) */}
         <CaregiverPortalModal
+          syncStatus={syncStatus}
+          doseRecords={doseRecords}
           isOpen={isCaregiverOpen}
           onClose={() => {
             setIsCaregiverOpen(false);

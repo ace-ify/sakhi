@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { Lock, ShieldCheck, CheckCircle2, AlertTriangle, X, Pill, Bell, Sparkles, Plus, Calendar, Trash2, Stethoscope, Activity } from "lucide-react";
-import { formatAppointmentDate, type Medication, type Appointment } from "@/lib/medication-store";
+import { formatAppointmentDate, type Medication, type Appointment, type DoseRecord } from "@/lib/medication-store";
 
 interface CaregiverPortalModalProps {
+  syncStatus: "local" | "connected" | "error";
+  doseRecords: DoseRecord[];
   isOpen: boolean;
   onClose: () => void;
   isDark: boolean;
@@ -23,6 +25,8 @@ interface CaregiverPortalModalProps {
 }
 
 export function CaregiverPortalModal({
+  syncStatus,
+  doseRecords,
   isOpen,
   onClose,
   isDark,
@@ -89,6 +93,14 @@ export function CaregiverPortalModal({
   } | null>(null);
   const [isCheckingSafety, setIsCheckingSafety] = useState(false);
 
+  const historyDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const count = doseRecords.filter((record) => record.date === key && record.status === "TAKEN").length;
+    return { day: new Intl.DateTimeFormat(language === "hi" ? "hi-IN" : "en-IN", { weekday: "short" }).format(date), sub: new Intl.DateTimeFormat("en-IN", { weekday: "short" }).format(date), status: index === 6 ? "today" : count > 0 ? "complete" : "empty", count: count ? `${count} taken` : "?" };
+  });
+
   if (!isOpen) return null;
 
   const handlePinSubmit = (e: React.FormEvent) => {
@@ -96,6 +108,8 @@ export function CaregiverPortalModal({
     if (pin === "1234") {
       setIsAuthenticated(true);
       setErrorMsg("");
+      sessionStorage.setItem("sakhi_family_sync_code", pin);
+      window.dispatchEvent(new Event("sakhi:connect-family"));
     } else {
       setErrorMsg(language === "hi" ? "गलत पासकोड! (डिफ़ॉल्ट: 1234)" : "Invalid Passcode! (Default: 1234)");
       setPin("");
@@ -152,43 +166,32 @@ export function CaregiverPortalModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 select-none">
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in"
-      />
-
-      {/* Modal Dialog */}
-      <div
-        className={`relative z-10 flex w-full max-w-[420px] flex-col max-h-[90vh] overflow-y-auto rounded-3xl border shadow-2xl p-5 animate-in zoom-in-95 duration-200 ${
-          isDark
-            ? "bg-[#161619] border-zinc-800 text-zinc-100"
-            : "bg-white border-stone-200 text-stone-900"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-full bg-emerald-600/20 text-emerald-400">
-              <ShieldCheck className="size-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold tracking-tight">
-                {language === "hi" ? "पारिवारिक देखभाल पोर्टल" : "Caregiver & Family Portal"}
-              </h3>
-              <p className="text-[10px] text-zinc-400">
-                {language === "hi" ? "डेमो पासकोड" : "Demo passcode · local demo data"}
-              </p>
-            </div>
-          </div>
+    <div className="absolute inset-0 z-40 flex flex-col overflow-hidden bg-[#161619] text-zinc-100 select-none animate-in fade-in duration-200">
+      {/* Top Embedded Navigation Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/80 shrink-0 bg-[#161619]/95 backdrop-blur-md">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={onClose}
-            className="flex size-7 items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+            className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-800/60 px-2.5 py-1 rounded-full cursor-pointer transition-colors"
           >
-            <X className="size-4" />
+            <span>← {language === "hi" ? "साथी" : "Companion"}</span>
           </button>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-100">
+            <ShieldCheck className="size-4 text-emerald-400" />
+            <span>{language === "hi" ? "केयरगिवर पोर्टल" : "Caregiver Portal"}</span>
+          </div>
         </div>
+
+        <button
+          onClick={onClose}
+          className="flex size-7 items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
+
+      {/* Scrollable Portal Content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
         {/* 1. Passcode Gate Screen */}
         {!isAuthenticated ? (
@@ -229,6 +232,9 @@ export function CaregiverPortalModal({
         ) : (
           /* 2. Authenticated Dashboard */
           <div className="flex flex-col gap-4 mt-4">
+            <p className={`rounded-xl border px-3 py-2 text-xs ${syncStatus === "connected" ? "border-emerald-700 text-emerald-300" : "border-amber-700 text-amber-300"}`}>
+              {syncStatus === "connected" ? "Shared schedule connected. Background reminders can use saved data." : syncStatus === "error" ? "Shared schedule could not connect. Changes are only in this browser; background reminders are off." : "Local demo data. Configure shared storage for background reminders."}
+            </p>
             {/* Senior Adherence Summary: 7-Day Sanjeevani Health Rhythm */}
             <div className="rounded-2xl border border-zinc-800 bg-[#1c1c22] p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -245,15 +251,7 @@ export function CaregiverPortalModal({
 
               {/* 7 Daily Rhythm Badges */}
               <div className="grid grid-cols-7 gap-1.5 py-1">
-                {[
-                  { day: "सोम", sub: "Mon", status: "complete", count: "3/3" },
-                  { day: "मंगल", sub: "Tue", status: "complete", count: "3/3" },
-                  { day: "बुध", sub: "Wed", status: "complete", count: "3/3" },
-                  { day: "गुरु", sub: "Thu", status: "complete", count: "2/3" },
-                  { day: "शुक्र", sub: "Fri", status: "complete", count: "3/3" },
-                  { day: "शनि", sub: "Today", status: "today", count: `${takenCount}/${meds.length}` },
-                  { day: "रवि", sub: "Sun", status: "upcoming", count: "--" },
-                ].map((d, idx) => (
+                {historyDays.map((d, idx) => (
                   <div
                     key={idx}
                     className={`flex flex-col items-center justify-center p-1.5 rounded-xl border text-center transition-all ${
@@ -289,9 +287,7 @@ export function CaregiverPortalModal({
                   style={{ width: `${adherencePct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-zinc-400">
-                👵 प्रभा देवी (72 वर्ष) • 7-दिन निरंतर स्वास्थ्य स्ट्रीक
-              </p>
+              <p className="text-[10px] text-zinc-400">Counts come from recorded doses in the last seven days.</p>
             </div>
 
             {/* Medication Schedule Management */}
@@ -582,13 +578,13 @@ export function CaregiverPortalModal({
                   </div>
                 </div>
                 <span className="text-[10px] bg-emerald-950/60 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full font-medium">
-                  Demo only
+                  Provider setup required
                 </span>
               </div>
               <p className="text-[10px] text-zinc-400">
                 {language === "hi"
                   ? "इस डेमो में कोई WhatsApp या SMS नहीं भेजा जाता है।"
-                  : "No WhatsApp or SMS is sent in this demo phase."}
+                  : "With provider keys configured, upcoming doses and visits send email reminders while this app is open. Missed doses can also place a caregiver call."}
               </p>
             </div>
           </div>
