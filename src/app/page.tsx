@@ -249,10 +249,10 @@ export default function MobileVoiceApp() {
 
       {/* CENTRAL PHONE CONTAINER: Pixel-Perfect for iPhone 16 Pro Max & Responsive Mobile */}
       <div
-        className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[48px] sm:border sm:border-zinc-800/90 shadow-2xl transition-colors duration-500 mx-auto ${
+        className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[36px] sm:border-[3px] shadow-2xl transition-colors duration-500 mx-auto ${
           isDark
-            ? "bg-[#121214] text-zinc-100 sm:shadow-[0_25px_70px_rgba(0,0,0,0.85)]"
-            : "bg-[#faf7f5] text-stone-900 sm:border-stone-300 sm:shadow-[0_25px_60px_rgba(0,0,0,0.2)]"
+            ? "bg-[#121214] text-zinc-100 sm:border-[#2e2e34] sm:ring-1 sm:ring-white/10 sm:shadow-[0_25px_70px_rgba(0,0,0,0.9)]"
+            : "bg-[#faf7f5] text-stone-900 sm:border-[#d4d4d8] sm:ring-1 sm:ring-black/10 sm:shadow-[0_25px_60px_rgba(0,0,0,0.2)]"
         } ${isTransitioningTheme ? "theme-transition" : ""}`}
       >
         {/* TOP HEADER: Clean & Breathable */}
