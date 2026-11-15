@@ -565,7 +565,7 @@ export default function MobileVoiceApp() {
                         : orbState === "speaking"
                         ? "text-emerald-400 animate-pulse"
                         : isDark
-                        ? "text-zinc-500"
+                        ? "text-zinc-400"
                         : "text-stone-500"
                     }`}
                   >
@@ -614,7 +614,7 @@ export default function MobileVoiceApp() {
                               : `Recorded, Dadi! ${dueDose.name} marked as taken. Compliance updated.`
                           );
                         }}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-semibold shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                        className="rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 text-xs font-semibold shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
                       >
                         {language === "hi" ? "ले ली ✓" : "Taken ✓"}
                       </button>
