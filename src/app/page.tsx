@@ -8,7 +8,7 @@ import { AgentControlBar } from "@/components/agents-ui/agent-control-bar";
 import { AgentChatTranscript, type TranscriptMessage } from "@/components/agents-ui/agent-chat-transcript";
 import { AgentPopup } from "@/components/agents-ui/agent-popup";
 import { CaregiverPortalModal } from "@/components/caregiver/caregiver-portal-modal";
-import { useSharedHealthData } from "@/lib/medication-store";
+import { formatAppointmentDate, useSharedHealthData } from "@/lib/medication-store";
 import {
   Menu,
   Globe,
@@ -58,8 +58,8 @@ export default function MobileVoiceApp() {
   const [statusWordIndex, setStatusWordIndex] = useState(0);
 
   // Unified Shared Health & Medication Store (Syncs Dadi screen & Caregiver Portal)
-  const { meds, appts, markDose, addMedication, addAppointment, adherencePct, takenCount } = useSharedHealthData();
-  const dueDose = meds.find((m) => !m.taken);
+  const { meds, appts, markDose, addMedication, updateMedication, removeMedication, addAppointment, updateAppointment, adherencePct, takenCount } = useSharedHealthData();
+  const dueDose = meds.find((m) => !m.doseStatus);
 
   // Cycle Claude Code status words when thinking
   useEffect(() => {
@@ -395,7 +395,7 @@ export default function MobileVoiceApp() {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => {
-                          markDose(dueDose.id, true);
+                          markDose(dueDose.id, "TAKEN");
                           handleTrigger(
                             language === "hi" ? `${dueDose.name} ले ली` : `Took ${dueDose.name}`,
                             language === "hi"
@@ -409,16 +409,17 @@ export default function MobileVoiceApp() {
                       </button>
                       <button
                         onClick={() => {
+                          markDose(dueDose.id, "SKIPPED");
                           handleTrigger(
                             language === "hi" ? `${dueDose.name} अभी नहीं ली` : `Skipped ${dueDose.name}`,
                             language === "hi"
-                              ? `कोई बात नहीं दादी, मैं 20 मिनट बाद फिर याद दिलाऊँगी। ध्यान रखें!`
-                              : `Understood Dadi, I will remind you again in 20 minutes.`
+                              ? `ठीक है। मैंने ${dueDose.name} को आज के लिए नहीं ली गई के रूप में दर्ज किया है।`
+                              : `Understood. I recorded ${dueDose.name} as not taken today.`
                           );
                         }}
                         className="rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 px-2 py-1.5 text-xs font-medium cursor-pointer"
                       >
-                        {language === "hi" ? "बाकी" : "Later"}
+                        {language === "hi" ? "नहीं ली" : "Not taken"}
                       </button>
                     </div>
                   </div>
@@ -694,85 +695,38 @@ export default function MobileVoiceApp() {
           </div>
         )}
 
-        {/* 2. DOCTOR APPOINTMENTS MODAL WITH IN-FEATURE LIVEKIT AGENT POPUP */}
+        {/* 2. Shared Doctor Appointments */}
         {isApptOpen && (
-          <div
-            className={`absolute inset-0 z-40 flex flex-col p-5 animate-in fade-in duration-200 ${
-              isDark ? "bg-[#161619] text-white" : "bg-white text-stone-900"
-            }`}
-          >
+          <div className={`absolute inset-0 z-40 flex flex-col p-5 animate-in fade-in duration-200 ${isDark ? "bg-[#161619] text-white" : "bg-white text-stone-900"}`}>
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
               <div className="flex items-center gap-2">
                 <Calendar className="size-4 text-rose-500" />
-                <h3 className="text-sm font-bold">{language === "hi" ? "डॉक्टर परामर्श" : "Appointments"}</h3>
+                <h3 className="text-sm font-bold">Appointments</h3>
               </div>
-              <button
-                onClick={() => setIsApptOpen(false)}
-                className="flex size-7 items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
-              >
+              <button onClick={() => setIsApptOpen(false)} aria-label="Close appointments" className="flex size-8 items-center justify-center rounded-full bg-zinc-800 text-zinc-300 hover:text-white cursor-pointer">
                 <X className="size-4" />
               </button>
             </div>
-
             <div className="mt-4 flex-1 overflow-y-auto space-y-3">
-              <div className={`rounded-2xl border p-3.5 ${isDark ? "border-zinc-800 bg-[#202025]" : "border-stone-200 bg-stone-50"}`}>
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold">Dr. Arvind Sharma</h4>
-                  <span className="rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 text-[10px] font-medium">
-                    {language === "hi" ? "कल" : "Tomorrow"}
-                  </span>
+              {appts.length ? appts.map((appointment) => (
+                <div key={appointment.id} className={`rounded-2xl border p-3.5 ${isDark ? "border-zinc-800 bg-[#202025]" : "border-stone-200 bg-stone-50"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-xs font-semibold">{appointment.doctorName}</h4>
+                    <span className="rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 text-[10px] font-medium">{appointment.status}</span>
+                  </div>
+                  <p className="text-[11px] text-rose-500 font-medium mt-0.5">{appointment.specialty}</p>
+                  <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5">
+                    <Clock className="size-3 text-zinc-500" /> {formatAppointmentDate(appointment.date, language)} - {appointment.time} - {appointment.hospital}
+                  </p>
                 </div>
-                <p className="text-[11px] text-rose-500 font-medium mt-0.5">{language === "hi" ? "हृदय रोग" : "Cardiology"}</p>
-                <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5">
-                  <Clock className="size-3 text-zinc-500" /> 10:30 AM · Max Hospital
-                </p>
-              </div>
-
-              <div className={`rounded-2xl border p-3.5 ${isDark ? "border-zinc-800 bg-[#202025]" : "border-stone-200 bg-stone-50"}`}>
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold">Dr. Meenakshi Iyer</h4>
-                  <span className="rounded-full bg-zinc-800 text-zinc-400 px-2 py-0.5 text-[10px] font-medium">
-                    20 Nov
-                  </span>
-                </div>
-                <p className="text-[11px] text-rose-500 font-medium mt-0.5">{language === "hi" ? "वरिष्ठ नागरिक" : "Geriatrician"}</p>
-                <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5">
-                  <Clock className="size-3 text-zinc-500" /> 04:00 PM · Apollo Clinic
-                </p>
-              </div>
+              )) : <p className="py-10 text-center text-sm text-zinc-400">No appointments have been added yet.</p>}
             </div>
-
-            <button
-              onClick={async () => {
-                await fetch("/api/notify", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    recipient: "prashant.caregiver@example.com",
-                    patientName: "Prabha Devi",
-                    type: "APPOINTMENT_REMINDER",
-                    details: "Dr. Arvind Sharma (Cardiology) - Tomorrow at 10:30 AM.",
-                  }),
-                }).catch(console.error);
-                alert(language === "hi" ? "ईमेल परिवार को भेजा गया।" : "Email sent to family.");
-                setIsApptOpen(false);
-              }}
-              className="mt-3 w-full rounded-2xl bg-rose-600 py-3 text-xs font-semibold text-white shadow-md hover:bg-rose-500 transition-colors cursor-pointer"
-            >
-              {language === "hi" ? "ईमेल रिमाइंडर भेजें" : "Send Email Reminder"}
+            <button onClick={() => { setIsApptOpen(false); setIsCaregiverOpen(true); }} className="mt-3 w-full rounded-2xl bg-rose-600 py-3 text-xs font-semibold text-white shadow-md hover:bg-rose-500 transition-colors cursor-pointer">
+              Manage appointments in caregiver portal
             </button>
-
-            {/* In-Feature LiveKit Floating Assistant Popup */}
-            <AgentPopup
-              agentName={language === "hi" ? "सखी" : "Sakhi"}
-              isDark={isDark}
-              language={language}
-              featureContext={language === "hi" ? "डॉक्टर अपॉइंटमेंट" : "Appointments"}
-              onTriggerVoice={handleToggleMic}
-            />
+            <AgentPopup agentName="Sakhi" isDark={isDark} language={language} featureContext="Appointments" onTriggerVoice={handleToggleMic} />
           </div>
         )}
-
         {/* 3. PARCHA UPLOAD MODAL WITH IN-FEATURE LIVEKIT AGENT POPUP */}
         {isUploadOpen && (
           <div
@@ -836,13 +790,12 @@ export default function MobileVoiceApp() {
           isDark={isDark}
           language={language}
           meds={meds}
-          onToggleMed={(id) => {
-            const med = meds.find((m) => m.id === id);
-            if (med) markDose(id, !med.taken);
-          }}
+          onUpdateMed={updateMedication}
+          onRemoveMed={removeMedication}
           onAddMed={addMedication}
           appts={appts}
           onAddAppt={addAppointment}
+          onUpdateAppt={updateAppointment}
           adherencePct={adherencePct}
           takenCount={takenCount}
         />
