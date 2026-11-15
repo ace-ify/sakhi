@@ -249,15 +249,36 @@ export default function MobileVoiceApp() {
       </div>
 
       {/* AUTHENTIC IPHONE 16 PRO HARDWARE CHASSIS MOCKUP */}
-      <Iphone16Pro width={420} height={840}>
+      <Iphone16Pro width={410}>
         <div
           className={`relative z-10 flex h-full w-full flex-col overflow-hidden transition-colors duration-500 ${
             isDark ? "bg-[#121214] text-zinc-100" : "bg-[#faf7f5] text-stone-900"
           } ${isTransitioningTheme ? "theme-transition" : ""}`}
         >
+          {/* iOS Status Bar with Center Dynamic Island Clearance */}
+          <div className="relative z-30 flex h-7 w-full items-center justify-between px-5 pt-1 shrink-0 select-none">
+            {/* Left: Clock */}
+            <span className={`text-[11px] font-semibold tracking-tight ${isDark ? "text-zinc-300" : "text-stone-800"}`}>
+              9:41
+            </span>
+            {/* Center: Gap where SVG Dynamic Island renders */}
+            <div className="w-24 shrink-0" />
+            {/* Right: Cellular / Battery */}
+            <div className={`flex items-center gap-1.5 ${isDark ? "text-zinc-300" : "text-stone-800"}`}>
+              <span className="text-[10px] font-bold tracking-tight">5G</span>
+              <div className={`h-2.5 w-3.5 rounded-[3px] border relative flex items-center px-[1px] ${
+                isDark ? "border-zinc-400" : "border-stone-600"
+              }`}>
+                <div className={`h-1.5 w-full rounded-[1px] ${
+                  isDark ? "bg-zinc-200" : "bg-stone-800"
+                }`} />
+              </div>
+            </div>
+          </div>
+
           {/* TOP HEADER: Liquid Glass Floating Navigation Bar */}
           <header
-            className="sticky top-0 z-30 flex h-14 items-center justify-between px-4 pt-2 shrink-0 transition-all duration-300 select-none"
+            className="sticky top-0 z-20 flex h-12 items-center justify-between px-3 shrink-0 transition-all duration-300 select-none"
             style={{
               background: isDark
                 ? "linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(18, 18, 20, 0.4)"
@@ -510,6 +531,11 @@ export default function MobileVoiceApp() {
             isDark={isDark}
             language={language}
           />
+        </div>
+
+        {/* iOS Home Indicator Bar */}
+        <div className="w-full flex justify-center pb-1.5 shrink-0 z-20 select-none">
+          <div className={`h-1 w-28 rounded-full ${isDark ? "bg-white/20" : "bg-black/20"}`} />
         </div>
 
         {/* ===================== SIDEBAR & MODALS ===================== */}

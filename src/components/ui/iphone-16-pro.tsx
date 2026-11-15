@@ -9,25 +9,44 @@ export interface Iphone16ProProps extends SVGProps<SVGSVGElement> {
 }
 
 export function Iphone16Pro({
-  width = 420,
-  height = 840,
+  width = 400,
+  height,
   src,
   children,
   className = "",
   ...props
 }: Iphone16ProProps) {
-  // If children are provided, wrap the interactive app inside the authentic iPhone 16 Pro hardware chassis
+  // If children are provided, lock the interactive app screen strictly into the OLED coordinates of the iPhone 16 Pro
   if (children) {
     return (
       <div
-        className={`relative mx-auto flex items-center justify-center select-none w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-[420px] sm:aspect-[200/400] ${className}`}
+        className={`relative mx-auto select-none ${className}`}
+        style={{
+          width: "100%",
+          maxWidth: `${width}px`,
+          aspectRatio: "200 / 400",
+        }}
       >
-        {/* Physical Titanium Hardware Chassis SVG Frame (Overlays on desktop with pointer-events-none) */}
+        {/* 1. App Screen Container: Strictly locked into OLED coordinates (left/right: 7.04%, top/bottom: 3.2%) */}
+        <div
+          className="absolute z-10 flex flex-col overflow-hidden bg-black"
+          style={{
+            left: "7.04%",
+            right: "7.04%",
+            top: "3.20%",
+            bottom: "3.20%",
+            borderRadius: "32px",
+          }}
+        >
+          {children}
+        </div>
+
+        {/* 2. Physical Titanium Hardware Chassis SVG Frame (Overlays on top with pointer-events-none) */}
         <svg
           viewBox="0 0 200 400"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="pointer-events-none hidden sm:block absolute inset-0 z-40 h-full w-full drop-shadow-[0_25px_70px_rgba(0,0,0,0.9)]"
+          className="pointer-events-none absolute inset-0 z-40 h-full w-full drop-shadow-[0_25px_60px_rgba(0,0,0,0.85)]"
           aria-hidden="true"
           {...props}
         >
@@ -41,7 +60,7 @@ export function Iphone16Pro({
             fill="#000000"
             d="M161.38,7.29H38.78c-16.54,0-29.95,13.41-29.95,29.95v325.52c0,16.54,13.41,29.95,29.95,29.95h122.6c16.54,0,29.95-13.41,29.95-29.95V37.24c0-16.54-13.41-29.95-29.95-29.95ZM186.07,362.57c0,13.6-11.02,24.62-24.62,24.62H38.7c-13.6,0-24.62-11.02-24.62-24.62V37.43c0-13.6,11.02-24.62,24.62-24.62h122.75c13.6,0,24.62,11.02,24.62,24.62v325.14Z"
           />
-          {/* Hardware Dynamic Island Cutout */}
+          {/* Dynamic Island Cutout */}
           <path
             fill="#000000"
             d="M119.61,33.86h-38.93c-10.48-.18-10.5-15.78,0-15.96,0,0,38.93,0,38.93,0,4.41,0,7.98,3.57,7.98,7.98,0,4.41-3.57,7.98-7.98,7.98Z"
@@ -52,13 +71,6 @@ export function Iphone16Pro({
             d="M118.78,29.21c-4.32.06-4.32-6.73,0-6.66,4.32-.06,4.32,6.73,0,6.66Z"
           />
         </svg>
-
-        {/* Interactive App Screen Container: Full viewport on mobile, OLED coords on desktop */}
-        <div
-          className="relative sm:absolute inset-0 sm:inset-[3.2%_7.04%_3.2%_7.04%] z-10 flex h-full w-full flex-col overflow-hidden sm:rounded-[34px]"
-        >
-          {children}
-        </div>
       </div>
     );
   }
