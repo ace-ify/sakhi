@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parsePrescriptionAnalysis } from "@/lib/prescription-parser";
 
 export async function POST(req: NextRequest) {
   const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -9,6 +10,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (Number(req.headers.get("content-length") || 0) > 5_500_000) {
+    return NextResponse.json({ error: "Prescription image is too large" }, { status: 413 });
+  }
+
   try {
     const { prescriptionText, imageBase64 } = await req.json();
 
@@ -16,6 +21,7 @@ export async function POST(req: NextRequest) {
         (!imageBase64 || typeof imageBase64 !== "string" || !imageBase64.trim())) {
       return NextResponse.json({ error: "Provide a prescription image or text." }, { status: 400 });
     }
+    if (prescriptionText !== undefined && (typeof prescriptionText !== "string" || prescriptionText.length > 10_000)) return NextResponse.json({ error: "Invalid prescription text" }, { status: 400 });
 
     const prompt = `You are a clinical pharmacology AI assistant specialized in Indian geriatric prescription parsing (Parcha analysis).
 Analyze the following prescription text or image data and extract the structured regimen.
@@ -68,14 +74,13 @@ ${prescriptionText || "See the attached image."}
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      return NextResponse.json({ error: `Gemini API error: ${errText}` }, { status: res.status });
+      return NextResponse.json({ error: `Gemini could not analyze this prescription (${res.status})` }, { status: 502 });
     }
 
     const data = await res.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    const cleaned = rawText.replace(/```json\n?|\n?```/g, "").trim();
-    const parsed = JSON.parse(cleaned);
+    let parsed;
+    try { parsed = parsePrescriptionAnalysis(data.candidates?.[0]?.content?.parts?.[0]?.text); }
+    catch { return NextResponse.json({ error: "Gemini returned an unreadable prescription. Try a clearer photo." }, { status: 502 }); }
 
     return NextResponse.json({
       success: true,

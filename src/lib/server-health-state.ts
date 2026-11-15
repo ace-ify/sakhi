@@ -1,10 +1,5 @@
-import type { Appointment, DoseRecord, Medication } from "./medication-store";
-
-export interface SharedHealthState {
-  medications: Medication[];
-  appointments: Appointment[];
-  doses: DoseRecord[];
-}
+import { validateSharedHealthState, type SharedHealthState } from "./health-state-validator";
+export type { SharedHealthState } from "./health-state-validator";
 
 export async function redisCommand(command: Array<string | number>) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -19,7 +14,7 @@ export async function redisCommand(command: Array<string | number>) {
 
 export async function readHealthState(): Promise<SharedHealthState | null> {
   const raw = await redisCommand(["GET", "sakhi:health:demo"]);
-  return typeof raw === "string" ? JSON.parse(raw) : null;
+  return typeof raw === "string" ? validateSharedHealthState(JSON.parse(raw)) : null;
 }
 
 export async function writeHealthState(state: SharedHealthState) {

@@ -1,4 +1,5 @@
-use lasa_engine::{evaluate_drug_safety, calculate_adherence};
+use lasa_engine::evaluate_drug_safety;
+use serde_json::json;
 use std::env;
 
 fn main() {
@@ -11,16 +12,8 @@ fn main() {
     let drug = &args[1];
     let alerts = evaluate_drug_safety(drug);
 
-    let alerts_json: Vec<String> = alerts.iter().map(|a| {
-        format!(
-            r#"{{"drugEntered":"{}","conflictingDrug":"{}","similarityScore":{},"severity":"{}","clinicalRisk":"{}"}}"#,
-            a.drug_entered, a.conflicting_drug, a.similarity_score, a.severity, a.clinical_risk
-        )
-    }).collect();
-
     println!(
-        r#"{{"drug":"{}","alerts":[{}],"engine":"Native Rust Binary (lasa_engine v0.1.0)"}}"#,
-        drug, alerts_json.join(",")
+        "{}",
+        json!({ "drug": drug, "alerts": alerts, "engine": "Native Rust Binary (lasa_engine v0.1.0)" })
     );
 }
-

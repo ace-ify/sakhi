@@ -1,10 +1,10 @@
 //! # LASA (Look-Alike Sound-Alike) Drug Safety & Geriatric Adherence Engine
 //!
-//! Sub-millisecond, zero-allocation phonetic and Levenshtein similarity engine
-//! engineered in Rust for elderly medication safety and DPDP 2023 / HIPAA compliance.
+//! A small known-pair similarity check for medication name review.
 //!
 //! Prevents fatal confusion between look-alike sound-alike drugs (e.g. Metformin vs Metronidazole).
 
+use serde::Serialize;
 use std::cmp::min;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,11 +71,11 @@ pub fn levenshtein_similarity(a: &str, b: &str) -> f64 {
 
     let mut dp = vec![vec![0; len_b + 1]; len_a + 1];
 
-    for i in 0..=len_a {
-        dp[i][0] = i;
+    for (i, row) in dp.iter_mut().enumerate().take(len_a + 1) {
+        row[0] = i;
     }
-    for j in 0..=len_b {
-        dp[0][j] = j;
+    for (j, cell) in dp[0].iter_mut().enumerate().take(len_b + 1) {
+        *cell = j;
     }
 
     let chars_a: Vec<char> = a_clean.chars().collect();
@@ -83,7 +83,11 @@ pub fn levenshtein_similarity(a: &str, b: &str) -> f64 {
 
     for i in 1..=len_a {
         for j in 1..=len_b {
-            let cost = if chars_a[i - 1] == chars_b[j - 1] { 0 } else { 1 };
+            let cost = if chars_a[i - 1] == chars_b[j - 1] {
+                0
+            } else {
+                1
+            };
             dp[i][j] = min(
                 min(dp[i - 1][j] + 1, dp[i][j - 1] + 1),
                 dp[i - 1][j - 1] + cost,
@@ -96,7 +100,8 @@ pub fn levenshtein_similarity(a: &str, b: &str) -> f64 {
     (1.0 - (distance as f64 / max_len)).max(0.0)
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SafetyAlert {
     pub drug_entered: String,
     pub conflicting_drug: String,
@@ -108,14 +113,21 @@ pub struct SafetyAlert {
 /// Checks an entered or speech-transcribed medication against high-risk LASA pairs
 pub fn evaluate_drug_safety(prescribed_drug: &str) -> Vec<SafetyAlert> {
     let mut alerts = Vec::new();
-    let drug_base = prescribed_drug.split_whitespace().next().unwrap_or(prescribed_drug);
+    let drug_base = prescribed_drug
+        .split_whitespace()
+        .next()
+        .unwrap_or(prescribed_drug);
 
     for pair in KNOWN_LASA_PAIRS {
         let sim_a = levenshtein_similarity(drug_base, pair.name_a);
         let sim_b = levenshtein_similarity(drug_base, pair.name_b);
 
         if sim_a > 0.65 || sim_b > 0.65 {
-            let other = if sim_a > sim_b { pair.name_b } else { pair.name_a };
+            let other = if sim_a > sim_b {
+                pair.name_b
+            } else {
+                pair.name_a
+            };
             let max_score = sim_a.max(sim_b);
 
             alerts.push(SafetyAlert {
@@ -198,5 +210,13 @@ mod tests {
         let report_bad = calculate_adherence(10, 5);
         assert_eq!(report_bad.status, "CRITICAL_GAP");
         assert!(report_bad.alert_caregiver);
+    }
+
+    #[test]
+    fn test_alert_json_escapes_user_entered_text() {
+        let alerts = evaluate_drug_safety("Metformin \"5mg\" \\ note");
+        let json = serde_json::to_string(&alerts).expect("serialize alerts");
+        let value: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+        assert_eq!(value[0]["drugEntered"], "Metformin \"5mg\" \\ note");
     }
 }

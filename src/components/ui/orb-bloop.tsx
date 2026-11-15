@@ -571,6 +571,12 @@ export function LivingVoiceOrb({ state, analyserNode, onActivate, size = 160 }: 
         WebkitTapHighlightColor: "transparent",
       }}
     >
+      {!webglAvailable && (
+        <span
+          aria-hidden="true"
+          style={{ position: "absolute", inset: 0, borderRadius: "50%", background: state === "emergency_active" ? "radial-gradient(circle at 35% 30%, #fb7185, #9f1239 70%)" : "radial-gradient(circle at 35% 30%, #6ee7b7, #065f46 70%)", boxShadow: "0 0 32px rgba(16,185,129,.25)" }}
+        />
+      )}
       <canvas
         ref={canvasRef}
         width={canvasPixelSize}

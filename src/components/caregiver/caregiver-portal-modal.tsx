@@ -9,7 +9,6 @@ interface CaregiverPortalModalProps {
   doseRecords: DoseRecord[];
   isOpen: boolean;
   onClose: () => void;
-  isDark: boolean;
   language: "hi" | "en";
   meds: Medication[];
   onUpdateMed: (id: string, changes: Partial<Pick<Medication, "name" | "dosage" | "time" | "instructions">>) => void;
@@ -19,7 +18,6 @@ interface CaregiverPortalModalProps {
   onAddAppt: (appt: Omit<Appointment, "id" | "status">) => void;
   onUpdateAppt: (id: string, changes: Partial<Omit<Appointment, "id">>) => void;
   adherencePct: number;
-  takenCount: number;
   onOpenVisitBrief?: (appt: Appointment) => void;
 }
 
@@ -28,7 +26,6 @@ export function CaregiverPortalModal({
   doseRecords,
   isOpen,
   onClose,
-  isDark,
   language,
   meds,
   onUpdateMed,
@@ -38,7 +35,6 @@ export function CaregiverPortalModal({
   onAddAppt,
   onUpdateAppt,
   adherencePct,
-  takenCount,
   onOpenVisitBrief,
 }: CaregiverPortalModalProps) {
   const [pin, setPin] = useState("");
@@ -71,19 +67,20 @@ export function CaregiverPortalModal({
   // Drug Safety Rust Check State
   const [safetyDrug, setSafetyDrug] = useState("");
   const [safetyResult, setSafetyResult] = useState<{
-    safe: boolean;
+    noKnownConflict: boolean;
+    scope: string;
     alerts: Array<{
       drugEntered: string;
       conflictingDrug: string;
       similarityScore: number;
       severity: string;
       clinicalRisk: string;
-      engine: string;
     }>;
     executionEngine: string;
     latencyMs: number;
   } | null>(null);
   const [isCheckingSafety, setIsCheckingSafety] = useState(false);
+  const [safetyError, setSafetyError] = useState("");
 
   const [historyDays, setHistoryDays] = useState<Array<{ day: string; sub: string; status: string; count: string }>>([]);
   useEffect(() => {
@@ -156,6 +153,7 @@ export function CaregiverPortalModal({
   const handleCheckSafety = async () => {
     if (!safetyDrug.trim()) return;
     setIsCheckingSafety(true);
+    setSafetyError("");
     try {
       const res = await fetch("/api/safety/check", {
         method: "POST",
@@ -163,9 +161,11 @@ export function CaregiverPortalModal({
         body: JSON.stringify({ drugName: safetyDrug }),
       });
       const data = await res.json();
+      if (!res.ok || !Array.isArray(data.alerts)) throw new Error("Safety check unavailable");
       setSafetyResult(data);
     } catch {
-      // Fallback
+      setSafetyResult(null);
+      setSafetyError(language === "hi" ? "दवा जाँच अभी उपलब्ध नहीं है।" : "Medicine name check is unavailable.");
     } finally {
       setIsCheckingSafety(false);
     }
@@ -190,6 +190,7 @@ export function CaregiverPortalModal({
 
         <button
           onClick={onClose}
+          aria-label="Close caregiver portal"
           className="flex size-7 items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
         >
           <X className="size-4" />
@@ -217,6 +218,7 @@ export function CaregiverPortalModal({
             <form onSubmit={handlePinSubmit} className="flex flex-col items-center gap-3 w-full max-w-xs">
               <input
                 type="password"
+                aria-label="Family code"
                 maxLength={128}
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
@@ -228,6 +230,7 @@ export function CaregiverPortalModal({
 
               <button
                 type="submit"
+                aria-label="Unlock caregiver portal"
                 disabled={!pin || isCheckingCode}
                 className="mt-2 w-full rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 py-2.5 text-xs font-semibold text-white transition-all cursor-pointer"
               >
@@ -307,6 +310,7 @@ export function CaregiverPortalModal({
                 </div>
                 <button
                   onClick={() => setIsAddingMed(!isAddingMed)}
+                  aria-label="Add medicine"
                   className="flex items-center gap-1 text-[11px] font-semibold text-rose-400 hover:text-rose-300 cursor-pointer"
                 >
                   <Plus className="size-3.5" />
@@ -320,6 +324,7 @@ export function CaregiverPortalModal({
                   <div className="flex gap-2">
                     <input
                       type="text"
+                      aria-label="Medicine name"
                       placeholder="दवा का नाम (उदा. Aspirin)"
                       value={newMedName}
                       onChange={(e) => setNewMedName(e.target.value)}
@@ -328,6 +333,7 @@ export function CaregiverPortalModal({
                     />
                     <input
                       type="text"
+                      aria-label="Dosage"
                       placeholder="डोज़ (75mg)"
                       value={newMedDosage}
                       onChange={(e) => setNewMedDosage(e.target.value)}
@@ -337,6 +343,7 @@ export function CaregiverPortalModal({
                   <div className="flex gap-2">
                     <input
                       type="text"
+                      aria-label="Scheduled time"
                       placeholder="समय (उदा. 02:00 PM)"
                       value={newMedTime}
                       onChange={(e) => setNewMedTime(e.target.value)}
@@ -344,6 +351,7 @@ export function CaregiverPortalModal({
                     />
                     <input
                       type="text"
+                      aria-label="Medicine instructions"
                       placeholder="निर्देश (भोजन के बाद)"
                       value={newMedInstructions}
                       onChange={(e) => setNewMedInstructions(e.target.value)}
@@ -352,6 +360,7 @@ export function CaregiverPortalModal({
                   </div>
                   <button
                     type="submit"
+                    aria-label="Save medicine"
                     className="rounded-lg bg-rose-600 hover:bg-rose-500 py-1.5 text-xs font-semibold text-white cursor-pointer"
                   >
                     शेड्यूल में जोड़ें
@@ -546,6 +555,7 @@ export function CaregiverPortalModal({
                 </button>
               </div>
 
+              {safetyError && <p role="alert" className="mt-2 text-xs text-rose-400">{safetyError}</p>}
               {safetyResult && (
                 <div className="mt-3 p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs">
                   {safetyResult.alerts.length > 0 ? (
@@ -553,7 +563,7 @@ export function CaregiverPortalModal({
                       <div key={i} className="flex flex-col gap-1 text-rose-300">
                         <div className="flex items-center gap-1.5 font-bold text-rose-400">
                           <AlertTriangle className="size-3.5 text-rose-500 shrink-0" />
-                          <span>{alert.severity} LASA Overlap ({alert.similarityScore}%)</span>
+                          <span>{alert.severity} LASA Overlap ({Math.round(alert.similarityScore * 100)}%)</span>
                         </div>
                         <p className="text-[11px] text-zinc-300">
                           समान नाम: <span className="text-amber-300 font-bold">{alert.conflictingDrug}</span>
@@ -564,7 +574,7 @@ export function CaregiverPortalModal({
                   ) : (
                     <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
                       <CheckCircle2 className="size-3.5" />
-                      <span>सुरक्षित: कोई गंभीर LASA टकराव नहीं मिला। ({safetyResult.latencyMs}ms)</span>
+                      <span>{language === "hi" ? "सूचीबद्ध दवा नामों में कोई समानता नहीं मिली; डॉक्टर से पुष्टि करें।" : "No match in the known name pairs; confirm with a clinician."} ({safetyResult.latencyMs}ms)</span>
                     </div>
                   )}
                 </div>

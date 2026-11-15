@@ -30,6 +30,7 @@ export function WelcomeScreen({ onStartDemo, language }: WelcomeScreenProps) {
           </div>
           <button
             onClick={() => onStartDemo(false)}
+            aria-label="Close welcome screen"
             className="rounded-full p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
             title="Close"
           >
@@ -62,6 +63,7 @@ export function WelcomeScreen({ onStartDemo, language }: WelcomeScreenProps) {
 
           <button
             onClick={() => onStartDemo(false)}
+            data-testid="skip-tour"
             className="w-full flex items-center justify-center rounded-xl bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white font-medium py-2.5 px-4 text-xs transition-colors cursor-pointer"
           >
             <span>{language === "hi" ? "टूर छोड़ें (सीधे ऐप देखें)" : "Skip Tour (Go to App)"}</span>

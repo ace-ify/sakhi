@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bot, X, MessageSquare, Mic, Sparkles } from "lucide-react";
+import { Bot, X } from "lucide-react";
 import { AgentControlBar } from "./agent-control-bar";
 import { AgentChatTranscript, type TranscriptMessage } from "./agent-chat-transcript";
 import type { VoiceState } from "@/types/voice";

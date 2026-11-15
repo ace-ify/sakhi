@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle2, Circle, ArrowRight, ArrowLeft, X, Sparkles, Shield, Mic, Pill, Stethoscope, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { CheckCircle2, ArrowRight, ArrowLeft, X, Sparkles, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 
 export interface TourStep {
   id: number;

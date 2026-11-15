@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
-import { Sparkles, Bot, User } from "lucide-react";
+import { Sparkles, Bot } from "lucide-react";
 import type { VoiceState } from "@/types/voice";
 
 export interface TranscriptMessage {

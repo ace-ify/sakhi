@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Stethoscope, Printer, FileText, CheckCircle2, AlertCircle, Sparkles, Calendar, Clock, MapPin } from "lucide-react";
+import { X, Stethoscope, Printer, FileText, Sparkles, Calendar, Clock, MapPin } from "lucide-react";
 import type { Appointment, Medication } from "@/lib/medication-store";
 
 interface DoctorVisitBriefModalProps {

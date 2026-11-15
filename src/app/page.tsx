@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useEffectEvent } from "react";
 import LivingVoiceOrb from "@/components/ui/orb-bloop";
 import type { VoiceState } from "@/types/voice";
-import { Iphone16Pro } from "@/components/ui/iphone-16-pro";
 import { AgentControlBar } from "@/components/agents-ui/agent-control-bar";
 import { AgentChatTranscript, type TranscriptMessage } from "@/components/agents-ui/agent-chat-transcript";
 import { AgentPopup } from "@/components/agents-ui/agent-popup";
@@ -22,13 +21,10 @@ import {
   Calendar,
   Clock,
   SquarePen,
-  ChevronDown,
-  ChevronUp,
   FileText,
   Heart,
   X,
   Upload,
-  MessageSquare,
   ShieldCheck,
   Sparkles,
   Compass,
@@ -91,7 +87,7 @@ export default function MobileVoiceApp() {
   const [isBriefModalOpen, setIsBriefModalOpen] = useState(false);
 
   // Unified Shared Health & Medication Store (Syncs Dadi screen & Caregiver Portal)
-  const { meds, appts, doseRecords, syncStatus, markDose, addMedication, addMedications, updateMedication, removeMedication, addAppointment, updateAppointment, adherencePct, takenCount } = useSharedHealthData();
+  const { meds, appts, doseRecords, syncStatus, markDose, addMedication, addMedications, updateMedication, removeMedication, addAppointment, updateAppointment, adherencePct } = useSharedHealthData();
   const dueDose = meds.find((m) => !m.doseStatus);
 
   const handleExecuteTourAction = async (stepId: number) => {
@@ -332,6 +328,10 @@ export default function MobileVoiceApp() {
     }
   };
 
+  const onSpeechResult = useEffectEvent((transcript: string) => {
+    void handleSendMessage(transcript);
+  });
+
   // Web Speech API Microphone Speech-To-Text (STT)
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -355,16 +355,16 @@ export default function MobileVoiceApp() {
       recognition.onresult = (event) => {
         const transcript = event.results?.[0]?.[0]?.transcript;
         if (transcript && transcript.trim()) {
-          void handleSendMessage(transcript.trim());
+          onSpeechResult(transcript.trim());
         }
       };
 
       recognition.onerror = () => {
-        if (orbState === "listening") setOrbState("idle");
+        setOrbState((current) => current === "listening" ? "idle" : current);
       };
 
       recognition.onend = () => {
-        if (orbState === "listening") setOrbState("idle");
+        setOrbState((current) => current === "listening" ? "idle" : current);
       };
 
       if (isCallConnected && !isMicMuted) {
@@ -804,6 +804,7 @@ export default function MobileVoiceApp() {
                     setIsSidebarOpen(false);
                     setIsCaregiverOpen(true);
                   }}
+                  aria-label="Open caregiver portal"
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
                     isDark ? "text-zinc-300 hover:bg-zinc-800 hover:text-white" : "text-stone-700 hover:bg-stone-100"
                   }`}
@@ -980,7 +981,6 @@ export default function MobileVoiceApp() {
           onClose={() => {
             setIsCaregiverOpen(false);
           }}
-          isDark={isDark}
           language={language}
           meds={meds}
           onUpdateMed={updateMedication}
@@ -990,7 +990,6 @@ export default function MobileVoiceApp() {
           onAddAppt={addAppointment}
           onUpdateAppt={updateAppointment}
           adherencePct={adherencePct}
-          takenCount={takenCount}
           onOpenVisitBrief={(appt) => {
             setActiveBriefAppt(appt);
             setIsBriefModalOpen(true);

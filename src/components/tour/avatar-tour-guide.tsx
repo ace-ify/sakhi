@@ -122,7 +122,7 @@ export function AvatarTourGuide({
     }
 
     return () => clearTimeout(timeout);
-  }, [currentStep, language, speechMuted]);
+  }, [currentStep, language, speechMuted, current.dialogueEn, current.dialogueHi]);
 
   return (
     <div className="w-full lg:w-[350px] xl:w-[390px] shrink-0 text-zinc-100 animate-in fade-in slide-in-from-left-4 duration-300">
@@ -148,6 +148,15 @@ export function AvatarTourGuide({
 
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
+              onClick={onResetTour}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800 transition-colors cursor-pointer"
+              aria-label="Restart tour"
+              title="Restart Tour"
+            >
+              <RotateCcw className="size-4" />
+            </button>
+            <button
               onClick={() => {
                 if (!speechMuted && typeof window !== "undefined" && "speechSynthesis" in window) {
                   window.speechSynthesis.cancel();
@@ -156,6 +165,7 @@ export function AvatarTourGuide({
               }}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800 transition-colors cursor-pointer"
               title={speechMuted ? "Unmute Guide Voice" : "Mute Guide Voice"}
+              aria-label={speechMuted ? "Unmute guide voice" : "Mute guide voice"}
             >
               {speechMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4 text-emerald-400" />}
             </button>
@@ -163,6 +173,7 @@ export function AvatarTourGuide({
               onClick={onCloseTour}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors cursor-pointer"
               title="Close Tour"
+              aria-label="Close tour"
             >
               <X className="size-4" />
             </button>
