@@ -1,18 +1,17 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import LivingVoiceOrb from "@/components/ui/orb-bloop";
 import type { VoiceState } from "@/types/voice";
+import { AgentControlBar } from "@/components/agents-ui/agent-control-bar";
+import { AgentChatTranscript, type TranscriptMessage } from "@/components/agents-ui/agent-chat-transcript";
+import { AgentPopup } from "@/components/agents-ui/agent-popup";
 import {
   Menu,
   Globe,
   Sun,
   Moon,
   AlertTriangle,
-  Plus,
-  Mic,
-  MicOff,
-  Send,
   Calendar,
   Clock,
   SquarePen,
@@ -22,16 +21,9 @@ import {
   Heart,
   X,
   Upload,
-  AudioWaveform,
-  MessageSquare
+  MessageSquare,
+  Plus
 } from "lucide-react";
-
-interface ChatMessage {
-  id: string;
-  sender: "agent" | "user";
-  text: string;
-  time: string;
-}
 
 // Claude Code-style rotating status words
 const THINKING_WORDS_HI = ["जांच रहा हूँ...", "पर्चा समझ रहा हूँ...", "दवा मिला रहा हूँ...", "तैयार कर रहा हूँ..."];
@@ -51,12 +43,9 @@ export default function MobileVoiceApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isApptOpen, setIsApptOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false); // Controls chat drawer collapse/expand
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState("");
+  const [isChatOpen, setIsChatOpen] = useState(false); // Controls chat transcript drawer
+  const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [statusWordIndex, setStatusWordIndex] = useState(0);
-
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   // Cycle Claude Code status words when thinking
   useEffect(() => {
@@ -68,19 +57,13 @@ export default function MobileVoiceApp() {
     }
   }, [orbState]);
 
-  useEffect(() => {
-    if (messages.length > 0 && isChatOpen) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, isChatOpen]);
-
-  // Theme switch with smooth circular expand
+  // Slower, smooth 850ms theme transition
   const toggleTheme = () => {
     setIsTransitioningTheme(true);
     setIsDark((prev) => !prev);
     setTimeout(() => {
       setIsTransitioningTheme(false);
-    }, 500);
+    }, 850);
   };
 
   // Start fresh chat (New Chat button like ChatGPT)
@@ -89,7 +72,6 @@ export default function MobileVoiceApp() {
     setIsChatOpen(false);
     setIsVoiceActive(false);
     setOrbState("idle");
-    setInputText("");
   };
 
   // Suggested Prompts (Minimalist single line, exact ChatGPT style)
@@ -112,7 +94,7 @@ export default function MobileVoiceApp() {
     setIsChatOpen(true);
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    const userMsg: ChatMessage = {
+    const userMsg: TranscriptMessage = {
       id: Date.now().toString(),
       sender: "user",
       text: promptText,
@@ -124,7 +106,7 @@ export default function MobileVoiceApp() {
 
     setTimeout(() => {
       setOrbState("speaking");
-      const agentMsg: ChatMessage = {
+      const agentMsg: TranscriptMessage = {
         id: (Date.now() + 1).toString(),
         sender: "agent",
         text: replyText,
@@ -139,7 +121,7 @@ export default function MobileVoiceApp() {
     }, 1200);
   };
 
-  // Toggle Voice / Tap Orb
+  // Toggle Voice / Tap Orb / Control Bar Mic
   const toggleVoice = () => {
     if (isVoiceActive) {
       setIsVoiceActive(false);
@@ -148,7 +130,7 @@ export default function MobileVoiceApp() {
       setIsVoiceActive(true);
       setOrbState("listening");
 
-      // Demo auto trigger if user doesn't interrupt
+      // Auto trigger demo if user doesn't interrupt
       setTimeout(() => {
         if (isVoiceActive || orbState === "listening") {
           handleTrigger(
@@ -162,17 +144,13 @@ export default function MobileVoiceApp() {
     }
   };
 
-  // Submit Text Input
-  const handleTextSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
-    const txt = inputText.trim();
-    setInputText("");
+  // Submit message from LiveKit Agent Control Bar
+  const handleSendMessage = (text: string) => {
     handleTrigger(
-      txt,
+      text,
       language === "hi"
-        ? `मैंने आपका संदेश दर्ज कर लिया है: "${txt}"। स्वास्थ्य रिकॉर्ड अपडेट है।`
-        : `Recorded your query: "${txt}". Health journal is up to date.`
+        ? `मैंने आपका संदेश दर्ज कर लिया है: "${text}"। स्वास्थ्य रिकॉर्ड अपडेट है।`
+        : `Recorded your query: "${text}". Health journal is up to date.`
     );
   };
 
@@ -219,13 +197,13 @@ export default function MobileVoiceApp() {
 
       {/* CENTRAL PHONE CONTAINER (Clean, Bezelless, Tall Viewport) */}
       <div
-        className={`relative z-10 flex h-[96vh] max-h-[890px] w-full max-w-[390px] flex-col overflow-hidden rounded-[44px] border shadow-2xl transition-colors duration-300 ${
+        className={`relative z-10 flex h-[96vh] max-h-[890px] w-full max-w-[390px] flex-col overflow-hidden rounded-[44px] border shadow-2xl transition-colors duration-500 ${
           isDark
             ? "bg-[#121214] text-zinc-100 border-[#2c2c2e] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
             : "bg-[#faf7f5] text-stone-900 border-stone-300 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)]"
         } ${isTransitioningTheme ? "theme-transition" : ""}`}
       >
-        {/* TOP HEADER: Sidebar + Branded "Sakhi" (Left) | New Chat, Theme, Lang, SOS (Right) */}
+        {/* TOP HEADER: Sidebar + Branded "Sakhi" (Left) | New Chat, Theme (Monochrome), Globe, SOS (Right) */}
         <header
           className={`flex h-14 items-center justify-between px-4 pt-1 shrink-0 z-20 border-b transition-colors ${
             isDark ? "border-zinc-800/80 bg-[#121214]/95" : "border-stone-200/80 bg-[#faf7f5]/95"
@@ -254,7 +232,7 @@ export default function MobileVoiceApp() {
             </span>
           </div>
 
-          {/* Right Action Icons: New Chat, Theme Switcher, Globe, SOS */}
+          {/* Right Action Icons: New Chat, Monochrome Theme, Globe, SOS */}
           <div className="flex items-center gap-1">
             {/* New Chat Button (ChatGPT-style instant reset) */}
             <button
@@ -267,11 +245,11 @@ export default function MobileVoiceApp() {
               <SquarePen className="size-4" />
             </button>
 
-            {/* Theme Switcher (Sun / Moon with Smooth Transition) */}
+            {/* Theme Switcher: Strictly MONOCHROME (black & white consistency, no yellow!) */}
             <button
               onClick={toggleTheme}
-              className={`flex size-8 items-center justify-center rounded-full transition-transform active:scale-90 cursor-pointer ${
-                isDark ? "text-amber-400 hover:bg-zinc-800" : "text-stone-700 hover:bg-stone-200"
+              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                isDark ? "text-zinc-300 hover:bg-zinc-800" : "text-stone-700 hover:bg-stone-200"
               }`}
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
@@ -304,7 +282,7 @@ export default function MobileVoiceApp() {
         {/* MAIN BODY AREA */}
         <div className="relative flex flex-1 flex-col overflow-hidden px-4 py-2">
           
-          {/* VIEW A: Full Centered Orb View (When chat drawer is closed) */}
+          {/* VIEW A: Full Centered Orb View (When chat transcript drawer is closed) */}
           {!isChatOpen ? (
             <div className="flex flex-1 flex-col justify-between">
               
@@ -397,7 +375,7 @@ export default function MobileVoiceApp() {
               )}
             </div>
           ) : (
-            /* VIEW B: Active Conversation Drawer (Shrunk Orb with Claude Code status + Chat) */
+            /* VIEW B: Active LiveKit Agent Chat Transcript (Shrunk Orb with Claude Code status + Transcript) */
             <div className="flex flex-1 flex-col overflow-hidden animate-fade-in">
               {/* Shrunk Orb Header Bar */}
               <div
@@ -447,96 +425,37 @@ export default function MobileVoiceApp() {
                 </button>
               </div>
 
-              {/* Message List */}
-              <div className="flex-1 overflow-y-auto space-y-3 pr-1 py-1">
-                {messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start"}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
-                        m.sender === "user"
-                          ? "bg-rose-600 text-white rounded-br-xs"
-                          : isDark
-                          ? "bg-[#232328] text-zinc-100 rounded-bl-xs border border-zinc-800/80"
-                          : "bg-white text-stone-800 rounded-bl-xs border border-stone-200 shadow-xs"
-                      }`}
-                    >
-                      {m.text}
-                    </div>
-                    <span className="text-[9px] text-zinc-500 mt-1 px-1">{m.time}</span>
-                  </div>
-                ))}
-                <div ref={chatEndRef} />
-              </div>
+              {/* Official LiveKit Agent Chat Transcript Component */}
+              <AgentChatTranscript
+                messages={messages}
+                agentState={orbState}
+                isDark={isDark}
+                language={language}
+              />
             </div>
           )}
         </div>
 
-        {/* BOTTOM CHATGPT-STYLE INPUT BAR */}
-        <div className="px-3 pb-4 pt-1 shrink-0 z-20">
-          <form
-            onSubmit={handleTextSubmit}
-            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-md transition-colors ${
-              isDark
-                ? "bg-[#202024] border-zinc-700/60 focus-within:border-zinc-500"
-                : "bg-white border-stone-300 focus-within:border-stone-500"
-            }`}
-          >
-            {/* Plus / Upload Button */}
-            <button
-              type="button"
-              onClick={() => setIsUploadOpen(true)}
-              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer shrink-0 ${
-                isDark ? "bg-[#2b2b31] text-zinc-300 hover:bg-[#383840]" : "bg-stone-100 text-stone-700 hover:bg-stone-200"
-              }`}
-              title="Upload Prescription / Report"
-            >
-              <Plus className="size-4" />
-            </button>
-
-            {/* Input Field */}
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={language === "hi" ? "सखी से कुछ भी पूछें..." : "Ask Sakhi..."}
-              className={`flex-1 bg-transparent text-xs focus:outline-none ${
-                isDark ? "text-white placeholder:text-zinc-500" : "text-stone-900 placeholder:text-stone-400"
-              }`}
-            />
-
-            {/* Mic Toggle Button */}
-            <button
-              type="button"
-              onClick={toggleVoice}
-              className={`flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer shrink-0 ${
-                isVoiceActive
-                  ? "bg-rose-500 text-white animate-pulse"
-                  : isDark
-                  ? "text-zinc-400 hover:text-white"
-                  : "text-stone-500 hover:text-stone-900"
-              }`}
-              title="Mic"
-            >
-              {isVoiceActive ? <MicOff className="size-4" /> : <Mic className="size-4" />}
-            </button>
-
-            {/* Circular Voice Waveform Button */}
-            <button
-              type="button"
-              onClick={toggleVoice}
-              className={`flex size-8 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0 ${
-                isVoiceActive
-                  ? "bg-rose-600 text-white"
-                  : "bg-emerald-500 text-white hover:bg-emerald-400"
-              }`}
-              title="Voice Mode"
-            >
-              <AudioWaveform className="size-4" />
-            </button>
-          </form>
+        {/* BOTTOM OFFICIAL LIVEKIT AGENT CONTROL BAR (3 Buttons: Mic, Chat, Leave) */}
+        <div className="px-4 pb-4 pt-1 shrink-0 z-20">
+          <AgentControlBar
+            isChatOpen={isChatOpen}
+            isConnected={true}
+            isMicMuted={!isVoiceActive}
+            onToggleMic={toggleVoice}
+            onToggleChat={() => setIsChatOpen(!isChatOpen)}
+            onDisconnect={startNewChat}
+            onSendMessage={handleSendMessage}
+            controls={{
+              microphone: true,
+              chat: true,
+              leave: true,
+              camera: false,      // Removed video as requested
+              screenShare: false, // Removed screen/computer as requested
+            }}
+            isDark={isDark}
+            language={language}
+          />
         </div>
 
         {/* ===================== SIDEBAR & MODALS ===================== */}
@@ -639,11 +558,30 @@ export default function MobileVoiceApp() {
                 </button>
               </div>
 
-              {/* Recent Consultations */}
+              {/* RECENT SECTION WITH NEW CHAT OPTION DIRECTLY ABOVE IT (As Requested) */}
               <div className="mt-4 flex-1 overflow-y-auto">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 px-2 mb-1.5">
-                  हाल की बातचीत (Recent)
-                </p>
+                <div className="flex items-center justify-between px-2 mb-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                    हाल की बातचीत (Recent)
+                  </p>
+                </div>
+
+                {/* NEW CHAT BUTTON RIGHT ABOVE RECENT LIST */}
+                <button
+                  onClick={() => {
+                    setIsSidebarOpen(false);
+                    startNewChat();
+                  }}
+                  className={`flex w-full items-center gap-2 rounded-xl border border-dashed px-3 py-2 text-xs font-semibold transition-colors cursor-pointer mb-2 ${
+                    isDark
+                      ? "border-zinc-700/80 text-zinc-300 hover:border-zinc-500 hover:text-white bg-zinc-800/40"
+                      : "border-stone-300 text-stone-700 hover:border-stone-500 hover:text-stone-900 bg-stone-100/70"
+                  }`}
+                >
+                  <SquarePen className="size-3.5 text-rose-500" />
+                  <span>+ नई बातचीत (New Chat)</span>
+                </button>
+
                 <div className="space-y-1">
                   <div
                     onClick={() => {
@@ -682,7 +620,7 @@ export default function MobileVoiceApp() {
           </div>
         )}
 
-        {/* 2. DOCTOR APPOINTMENTS MODAL */}
+        {/* 2. DOCTOR APPOINTMENTS MODAL WITH LIVEKIT AGENT POPUP-01 INTEGRATED */}
         {isApptOpen && (
           <div
             className={`absolute inset-0 z-40 flex flex-col p-5 animate-in fade-in duration-200 ${
@@ -749,10 +687,19 @@ export default function MobileVoiceApp() {
             >
               परिवार को ईमेल रिमाइंडर भेजें (Send Email)
             </button>
+
+            {/* LIVEKIT AGENT POPUP-01: In-feature floating assistant */}
+            <AgentPopup
+              agentName="Sakhi"
+              isDark={isDark}
+              language={language}
+              featureContext="Appointments"
+              onTriggerVoice={toggleVoice}
+            />
           </div>
         )}
 
-        {/* 3. PARCHA UPLOAD MODAL */}
+        {/* 3. PARCHA UPLOAD MODAL WITH LIVEKIT AGENT POPUP-01 INTEGRATED */}
         {isUploadOpen && (
           <div
             className={`absolute inset-0 z-40 flex flex-col p-5 animate-in fade-in duration-200 ${
@@ -796,6 +743,15 @@ export default function MobileVoiceApp() {
                 स्कैन और वेरीफाई करें (Scan & Verify)
               </button>
             </div>
+
+            {/* LIVEKIT AGENT POPUP-01: In-feature floating assistant */}
+            <AgentPopup
+              agentName="Sakhi"
+              isDark={isDark}
+              language={language}
+              featureContext="Prescription"
+              onTriggerVoice={toggleVoice}
+            />
           </div>
         )}
       </div>
