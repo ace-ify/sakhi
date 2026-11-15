@@ -1,69 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { deliverNotification, type AlertChannel, type AlertType } from "@/lib/notification-delivery";
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const {
-      recipient = "prashant.caregiver@example.com",
-      phone = "+919811044321",
-      patientName = "Prabha Devi",
-      type = "DOSE_MISSED",
-      details = "Morning medication dose pending.",
-    } = body;
+const eventTypes = new Set<AlertType>(["SOS_EMERGENCY", "DOSE_SKIPPED", "DOSE_MISSED", "DOSE_UPCOMING", "APPOINTMENT_UPCOMING"]);
 
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const timestamp = new Date().toISOString();
-    const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-    // Real Provider Delivery (Resend Email if configured)
-    if (resendApiKey && resendApiKey.startsWith("re_")) {
-      try {
-        const resendRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "Sakhi Eldercare <alerts@resend.dev>",
-            to: [recipient],
-            subject: `[Sakhi Alert] ${type}: ${patientName}`,
-            html: `<p><strong>Patient:</strong> ${patientName}</p><p><strong>Alert Type:</strong> ${type}</p><p><strong>Details:</strong> ${details}</p><p><em>Dispatched at ${timestamp}</em></p>`,
-          }),
-        });
-
-        const resendData = await resendRes.json();
-        if (resendRes.ok) {
-          return NextResponse.json({
-            success: true,
-            provider: "Resend",
-            channel: "EMAIL",
-            deliveryStatus: "DELIVERED",
-            recipient,
-            eventId: resendData.id || eventId,
-            timestamp,
-          });
-        }
-      } catch (err: unknown) {
-        console.error("Resend delivery failed:", err);
-      }
-    }
-
-    // Truthful Demo Event Record (When no external API key is active)
-    return NextResponse.json({
-      success: true,
-      provider: "Sakhi-EventBus",
-      channel: "WHATSAPP_SMS_SIMULATION",
-      deliveryStatus: "ACKNOWLEDGED",
-      mode: "TEST_DEMO_ENVIRONMENT",
-      recipient: phone || recipient,
-      eventId,
-      details,
-      timestamp,
-      notes: "Configured for Prashant Kumar. Connect RESEND_API_KEY or Twilio for live carrier relay.",
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to process alert";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
+export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (origin && origin !== request.nextUrl.origin) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  let body: unknown;
+  try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid event" }, { status: 400 });
+  const { type, details, channel = "both" } = body as Record<string, unknown>;
+  if ((channel !== "both" && channel !== "email" && channel !== "call") || typeof type !== "string" || !eventTypes.has(type as AlertType) || typeof details !== "string" || !details.trim() || details.length > 500) return NextResponse.json({ error: "Invalid event" }, { status: 400 });
+  const outcomes = await deliverNotification(type as AlertType, details, channel as AlertChannel);
+  if (!outcomes.length) return NextResponse.json({ error: "Configure a provider and caregiver destination" }, { status: 503 });
+  const success = outcomes.some((item) => item.status === "accepted" || item.status === "queued");
+  return NextResponse.json({ success, outcomes }, { status: success ? 202 : 502 });
 }

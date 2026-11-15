@@ -117,6 +117,8 @@ export function useSharedHealthData() {
   const [appts, setAppts] = useState<Appointment[]>(DEFAULT_APPTS);
   const [doseRecords, setDoseRecords] = useState<DoseRecord[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [syncReady, setSyncReady] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<"local" | "connected" | "error">("local");
 
   useEffect(() => {
     const savedMeds = safeRead<Medication[]>(MEDS_KEY) ?? DEFAULT_MEDS;
@@ -137,6 +139,48 @@ export function useSharedHealthData() {
     if (!storedDoses) save(DOSES_KEY, records);
     setIsLoaded(true);
   }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const connect = async () => {
+      const passcode = sessionStorage.getItem("sakhi_family_sync_code");
+      if (!passcode) return;
+      try {
+        const response = await fetch("/api/family-state", { headers: { "x-family-passcode": passcode }, cache: "no-store" });
+        if (!response.ok) { setSyncStatus("error"); return; }
+        const payload = await response.json();
+        if (payload.state) {
+          const state = payload.state as { medications: Medication[]; appointments: Appointment[]; doses: DoseRecord[] };
+          setMeds(withTodayStatus(state.medications, state.doses));
+          setAppts(state.appointments);
+          setDoseRecords(state.doses);
+          save(MEDS_KEY, state.medications);
+          save(APPTS_KEY, state.appointments);
+          save(DOSES_KEY, state.doses);
+        } else {
+          const saved = await fetch("/api/family-state", { method: "PUT", headers: { "Content-Type": "application/json", "x-family-passcode": passcode }, body: JSON.stringify({ medications: meds, appointments: appts, doses: doseRecords }) });
+          if (!saved.ok) throw new Error("Shared storage unavailable");
+        }
+        setSyncReady(true);
+        setSyncStatus("connected");
+      } catch { setSyncStatus("error"); }
+    };
+    void connect();
+    window.addEventListener("sakhi:connect-family", connect);
+    return () => window.removeEventListener("sakhi:connect-family", connect);
+  // Connect once on hydration or after the caregiver unlocks the portal.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (!syncReady) return;
+    const passcode = sessionStorage.getItem("sakhi_family_sync_code");
+    if (!passcode) return;
+    const timer = setTimeout(() => {
+      void fetch("/api/family-state", { method: "PUT", headers: { "Content-Type": "application/json", "x-family-passcode": passcode }, body: JSON.stringify({ medications: meds, appointments: appts, doses: doseRecords }) }).then((response) => setSyncStatus(response.ok ? "connected" : "error")).catch(() => setSyncStatus("error"));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [meds, appts, doseRecords, syncReady]);
 
   const persistMeds = (next: Medication[]) => {
     setMeds(next);
@@ -160,6 +204,10 @@ export function useSharedHealthData() {
 
   const addMedication = (medication: Omit<Medication, "id" | "taken" | "takenAt" | "doseStatus">) => {
     persistMeds(withTodayStatus([...meds, { ...medication, id: crypto.randomUUID(), taken: false }], doseRecords));
+  };
+
+  const addMedications = (items: Omit<Medication, "id" | "taken" | "takenAt" | "doseStatus">[]) => {
+    persistMeds(withTodayStatus([...meds, ...items.map((item) => ({ ...item, id: crypto.randomUUID(), taken: false }))], doseRecords));
   };
 
   const updateMedication = (id: string, changes: Partial<Omit<Medication, "id" | "taken" | "takenAt" | "doseStatus">>) => {
@@ -196,8 +244,10 @@ export function useSharedHealthData() {
     appts,
     doseRecords,
     isLoaded,
+    syncStatus,
     markDose,
     addMedication,
+    addMedications,
     updateMedication,
     removeMedication,
     addAppointment,

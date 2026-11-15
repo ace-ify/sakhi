@@ -179,3 +179,4 @@ Notes: Patient reported morning lightheadedness; evaluate BP dose titration.`;
     </div>
   );
 }
+

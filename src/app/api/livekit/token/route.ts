@@ -5,8 +5,10 @@ export async function GET(req: NextRequest) {
   const room = req.nextUrl.searchParams.get("room") || "parcha-room";
   const username = req.nextUrl.searchParams.get("username") || "dadi-user";
 
-  const apiKey = process.env.LIVEKIT_API_KEY || "devkey";
-  const apiSecret = process.env.LIVEKIT_API_SECRET || "secret";
+  const apiKey = process.env.LIVEKIT_API_KEY;
+  const apiSecret = process.env.LIVEKIT_API_SECRET;
+  const livekitUrl = process.env.LIVEKIT_URL;
+  if (!apiKey || !apiSecret || !livekitUrl) return NextResponse.json({ error: "LiveKit is not configured" }, { status: 503 });
 
   try {
     const at = new AccessToken(apiKey, apiSecret, {
@@ -19,7 +21,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       token,
-      url: process.env.LIVEKIT_URL || "wss://parcha-demo.livekit.cloud",
+      url: livekitUrl,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Token creation failed";

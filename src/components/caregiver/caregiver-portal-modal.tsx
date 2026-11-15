@@ -93,13 +93,19 @@ export function CaregiverPortalModal({
   } | null>(null);
   const [isCheckingSafety, setIsCheckingSafety] = useState(false);
 
-  const historyDays = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - index));
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    const count = doseRecords.filter((record) => record.date === key && record.status === "TAKEN").length;
-    return { day: new Intl.DateTimeFormat(language === "hi" ? "hi-IN" : "en-IN", { weekday: "short" }).format(date), sub: new Intl.DateTimeFormat("en-IN", { weekday: "short" }).format(date), status: index === 6 ? "today" : count > 0 ? "complete" : "empty", count: count ? `${count} taken` : "?" };
-  });
+  const [historyDays, setHistoryDays] = useState<Array<{ day: string; sub: string; status: string; count: string }>>([]);
+  useEffect(() => {
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - index));
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const count = doseRecords.filter((record) => record.date === key && record.status === "TAKEN").length;
+      return { day: new Intl.DateTimeFormat(language === "hi" ? "hi-IN" : "en-IN", { weekday: "short" }).format(date), sub: new Intl.DateTimeFormat("en-IN", { weekday: "short" }).format(date), status: index === 6 ? "today" : count > 0 ? "complete" : "empty", count: count ? `${count} taken` : "0" };
+    });
+    // Date-dependent data is computed after hydration so the build cannot freeze today's date.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHistoryDays(days);
+  }, [doseRecords, language]);
 
   if (!isOpen) return null;
 

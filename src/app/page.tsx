@@ -348,10 +348,11 @@ export default function MobileVoiceApp() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, language }),
+        body: JSON.stringify({ message: text, language, healthContext: JSON.stringify({ medications: meds.filter(({ id }) => !["1", "2", "3"].includes(id)).map(({ name, dosage, time, instructions, doseStatus }) => ({ name, dosage, time, instructions, doseStatus: doseStatus ?? "UNCONFIRMED" })), appointments: appts.filter(({ id }) => !["1", "2"].includes(id)).map(({ doctorName, hospital, date, time, status }) => ({ doctorName, hospital, date, time, status })) }) }),
       });
       const data = await res.json();
-      const reply = data.reply || (language === "hi" ? "जी दादी, मैंने दर्ज कर लिया है।" : "Yes Dadi, recorded.");
+      if (!res.ok || typeof data.reply !== "string") throw new Error(typeof data.error === "string" ? data.error : "Chat unavailable");
+      const reply = data.reply;
 
       setOrbState("speaking");
       const agentMsg: TranscriptMessage = {
@@ -362,8 +363,9 @@ export default function MobileVoiceApp() {
       };
       setMessages((prev) => [...prev, agentMsg]);
       speakText(reply);
-    } catch {
+    } catch (error) {
       setOrbState("idle");
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), sender: "agent", text: error instanceof Error ? error.message : "Chat unavailable", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
     }
   };
 
