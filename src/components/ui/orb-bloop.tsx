@@ -395,9 +395,12 @@ export function LivingVoiceOrb({ state, analyserNode, onActivate, size = 160 }: 
   const currentStateRef = useRef(state);
   const analyserRef = useRef(analyserNode);
   const [webglAvailable, setWebglAvailable] = useState(true);
-  currentStateRef.current = state;
-  analyserRef.current = analyserNode;
   const canvasPixelSize = size * 2;
+
+  useEffect(() => {
+    currentStateRef.current = state;
+    analyserRef.current = analyserNode;
+  }, [state, analyserNode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

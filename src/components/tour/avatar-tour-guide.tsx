@@ -106,6 +106,8 @@ export function AvatarTourGuide({
 
   // Speak dialogue aloud when step changes (if unmuted)
   useEffect(() => {
+    // Reset the transition when the current tour step changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsAvatarBouncing(true);
     const timeout = setTimeout(() => setIsAvatarBouncing(false), 700);
 

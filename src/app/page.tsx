@@ -38,6 +38,19 @@ import {
 const THINKING_WORDS_HI = ["जांच जारी है...", "पर्चा समझ रहा हूँ...", "दवा मिला रहा हूँ...", "तैयार कर रहा हूँ..."];
 const THINKING_WORDS_EN = ["Analyzing...", "Synthesizing...", "Verifying...", "Retrieving EHR..."];
 
+interface BrowserSpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: (() => void) | null;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
+
 export default function MobileVoiceApp() {
   // Theme state: dark / light
   const [isDark, setIsDark] = useState(true);
@@ -74,7 +87,6 @@ export default function MobileVoiceApp() {
     4: false,
     5: false,
   });
-  const [caregiverAutoAuth, setCaregiverAutoAuth] = useState(false);
   const [activeBriefAppt, setActiveBriefAppt] = useState<Appointment | null>(null);
   const [isBriefModalOpen, setIsBriefModalOpen] = useState(false);
 
@@ -105,12 +117,10 @@ export default function MobileVoiceApp() {
       setCompletedTourSteps((prev) => ({ ...prev, 2: true }));
       setTimeout(() => setCurrentTourStep(3), 1600);
     } else if (stepId === 3) {
-      setCaregiverAutoAuth(true);
       setIsCaregiverOpen(true);
       setCompletedTourSteps((prev) => ({ ...prev, 3: true }));
       setTimeout(() => setCurrentTourStep(4), 1200);
     } else if (stepId === 4) {
-      setCaregiverAutoAuth(true);
       setIsCaregiverOpen(true);
       try {
         await fetch("/api/safety/check", {
@@ -190,53 +200,6 @@ export default function MobileVoiceApp() {
       window.speechSynthesis.speak(utterance);
     } catch {}
   };
-
-  // Web Speech API Microphone Speech-To-Text (STT)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const SpeechRec =
-      (window as unknown as { SpeechRecognition?: any }).SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: any }).webkitSpeechRecognition;
-
-    if (!SpeechRec) return;
-
-    let recognition: any = null;
-    try {
-      recognition = new SpeechRec();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = language === "hi" ? "hi-IN" : "en-US";
-
-      recognition.onstart = () => {
-        setOrbState("listening");
-      };
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results?.[0]?.[0]?.transcript;
-        if (transcript && transcript.trim()) {
-          void handleSendMessage(transcript.trim());
-        }
-      };
-
-      recognition.onerror = () => {
-        if (orbState === "listening") setOrbState("idle");
-      };
-
-      recognition.onend = () => {
-        if (orbState === "listening") setOrbState("idle");
-      };
-
-      if (isCallConnected && !isMicMuted) {
-        recognition.start();
-      }
-    } catch {}
-
-    return () => {
-      if (recognition) {
-        try { recognition.stop(); } catch {}
-      }
-    };
-  }, [isCallConnected, isMicMuted, language]);
 
   // Execute a prompt or send text message
   const handleTrigger = (promptText: string, replyText: string) => {
@@ -369,10 +332,57 @@ export default function MobileVoiceApp() {
     }
   };
 
+  // Web Speech API Microphone Speech-To-Text (STT)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRec =
+      (window as unknown as { SpeechRecognition?: BrowserSpeechRecognitionConstructor }).SpeechRecognition ||
+      (window as unknown as { webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor }).webkitSpeechRecognition;
+
+    if (!SpeechRec) return;
+
+    let recognition: BrowserSpeechRecognition | null = null;
+    try {
+      recognition = new SpeechRec();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = language === "hi" ? "hi-IN" : "en-US";
+
+      recognition.onstart = () => {
+        setOrbState("listening");
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        if (transcript && transcript.trim()) {
+          void handleSendMessage(transcript.trim());
+        }
+      };
+
+      recognition.onerror = () => {
+        if (orbState === "listening") setOrbState("idle");
+      };
+
+      recognition.onend = () => {
+        if (orbState === "listening") setOrbState("idle");
+      };
+
+      if (isCallConnected && !isMicMuted) {
+        recognition.start();
+      }
+    } catch {}
+
+    return () => {
+      if (recognition) {
+        try { recognition.stop(); } catch {}
+      }
+    };
+  }, [isCallConnected, isMicMuted, language]);
+
   // SOS Emergency Alert
   const sendCareAlert = useCallback(async (type: string, details: string, channel: "email" | "call" | "both" = "both") => {
     try {
-      const response = await fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type, details, channel }) });
+      const response = await fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json", "x-family-passcode": sessionStorage.getItem("sakhi_family_sync_code") || "" }, body: JSON.stringify({ type, details, channel }) });
       const result = await response.json();
       return response.ok && result.success;
     } catch { return false; }
@@ -969,7 +979,6 @@ export default function MobileVoiceApp() {
           isOpen={isCaregiverOpen}
           onClose={() => {
             setIsCaregiverOpen(false);
-            setCaregiverAutoAuth(false);
           }}
           isDark={isDark}
           language={language}
@@ -987,7 +996,6 @@ export default function MobileVoiceApp() {
             setIsBriefModalOpen(true);
             setCompletedTourSteps((prev) => ({ ...prev, 5: true }));
           }}
-          autoAuth={caregiverAutoAuth}
         />
       </div>
 

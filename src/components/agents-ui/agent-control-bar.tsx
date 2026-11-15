@@ -54,6 +54,8 @@ function RealAudioEqualizer({
 
   useEffect(() => {
     if (!isActive) {
+      // Stop the visual meter when the external microphone session closes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLevels([3, 4, 3, 4]);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
@@ -227,6 +229,8 @@ export function AgentControlBar({
   }, [language, selectedDeviceId]);
 
   useEffect(() => {
+    // Device enumeration is an external browser API and updates the available-device list.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAudioDevices();
   }, [loadAudioDevices]);
 

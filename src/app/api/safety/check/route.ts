@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       binaryName
     );
 
-    let parsedAlerts: any[] = [];
+    let parsedAlerts: unknown[] = [];
     let engine = "Native Compiled Rust (crates/lasa_engine)";
     const startTime = performance.now();
 

@@ -21,7 +21,6 @@ interface CaregiverPortalModalProps {
   adherencePct: number;
   takenCount: number;
   onOpenVisitBrief?: (appt: Appointment) => void;
-  autoAuth?: boolean;
 }
 
 export function CaregiverPortalModal({
@@ -41,18 +40,11 @@ export function CaregiverPortalModal({
   adherencePct,
   takenCount,
   onOpenVisitBrief,
-  autoAuth = false,
 }: CaregiverPortalModalProps) {
   const [pin, setPin] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    if (autoAuth) {
-      setIsAuthenticated(true);
-      setPin("2026");
-    }
-  }, [autoAuth]);
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
 
   // Add Med Form Toggle & State
   const [isAddingMed, setIsAddingMed] = useState(false);
@@ -109,17 +101,25 @@ export function CaregiverPortalModal({
 
   if (!isOpen) return null;
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === "1234") {
-      setIsAuthenticated(true);
-      setErrorMsg("");
-      sessionStorage.setItem("sakhi_family_sync_code", pin);
-      window.dispatchEvent(new Event("sakhi:connect-family"));
-    } else {
-      setErrorMsg(language === "hi" ? "गलत पासकोड! (डिफ़ॉल्ट: 1234)" : "Invalid Passcode! (Default: 1234)");
-      setPin("");
-    }
+    setIsCheckingCode(true);
+    try {
+      const response = await fetch("/api/family-state/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passcode: pin }) });
+      if (response.ok) {
+        sessionStorage.setItem("sakhi_family_sync_code", pin);
+        window.dispatchEvent(new Event("sakhi:connect-family"));
+        setIsAuthenticated(true);
+        setErrorMsg("");
+      } else if (response.status === 503 && pin === "1234") {
+        setIsAuthenticated(true);
+        setErrorMsg("");
+      } else {
+        setErrorMsg(language === "hi" ? "परिवार कोड अमान्य है।" : "Invalid family code.");
+        setPin("");
+      }
+    } catch { setErrorMsg(language === "hi" ? "कोड जाँच उपलब्ध नहीं है।" : "Could not verify the family code."); }
+    finally { setIsCheckingCode(false); }
   };
 
   const handleCreateMed = (e: React.FormEvent) => {
@@ -206,20 +206,20 @@ export function CaregiverPortalModal({
               <Lock className="size-7" />
             </div>
             <h4 className="text-base font-bold tracking-tight mb-1">
-              {language === "hi" ? "4-अंकों का पासकोड दर्ज करें" : "Enter 4-Digit Passcode"}
+              {language === "hi" ? "परिवार कोड दर्ज करें" : "Enter Family Code"}
             </h4>
             <p className="text-xs text-zinc-400 max-w-xs mb-5">
               {language === "hi"
-                ? "वरिष्ठ नागरिक का स्वास्थ्य डेटा सुरक्षित रखने के लिए पासकोड अनिवार्य है (परीक्षण कोड: 1234)।"
-                : "Demo gate for this prototype (PIN: 1234). Health data is stored in this browser."}
+                ? "साझा डेटा के लिए परिवार कोड दर्ज करें। स्थानीय डेमो के लिए 1234 इस्तेमाल करें।"
+                : "Enter your configured family code for shared data. For local-only demo mode, use 1234."}
             </p>
 
             <form onSubmit={handlePinSubmit} className="flex flex-col items-center gap-3 w-full max-w-xs">
               <input
                 type="password"
-                maxLength={4}
+                maxLength={128}
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setPin(e.target.value)}
                 placeholder="• • • •"
                 className="w-40 text-center tracking-[0.5em] text-2xl font-bold rounded-2xl border border-zinc-700 bg-zinc-900/80 py-2.5 text-white focus:outline-hidden focus:border-rose-500"
                 autoFocus
@@ -228,7 +228,7 @@ export function CaregiverPortalModal({
 
               <button
                 type="submit"
-                disabled={pin.length !== 4}
+                disabled={!pin || isCheckingCode}
                 className="mt-2 w-full rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 py-2.5 text-xs font-semibold text-white transition-all cursor-pointer"
               >
                 {language === "hi" ? "सुरक्षित लॉगिन करें" : "Unlock Portal"}
