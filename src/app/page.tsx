@@ -621,7 +621,7 @@ export default function MobileVoiceApp() {
                       <button
                         onClick={() => {
                           markDose(dueDose.id, "SKIPPED");
-                          void sendCareAlert("DOSE_SKIPPED", `${dueDose.name} ${dueDose.dosage} was marked not taken.`);
+                          void sendCareAlert("DOSE_SKIPPED", `${dueDose.name} ${dueDose.dosage} was marked not taken.`).then((sent) => { if (!sent) alert("Dose saved, but the caregiver alert could not be sent. Please contact them directly if needed."); });
                           handleTrigger(
                             language === "hi" ? `${dueDose.name} अभी नहीं ली` : `Skipped ${dueDose.name}`,
                             language === "hi"

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deliverNotification, type AlertChannel, type AlertType } from "@/lib/notification-delivery";
+import { validFamilyCode } from "@/lib/family-auth";
 
 const eventTypes = new Set<AlertType>(["SOS_EMERGENCY", "DOSE_SKIPPED", "DOSE_MISSED", "DOSE_UPCOMING", "APPOINTMENT_UPCOMING"]);
 
 export async function POST(request: NextRequest) {
   const familyCode = process.env.FAMILY_PASSCODE;
   if (!familyCode || familyCode.length < 12) return NextResponse.json({ error: "Family access is not configured" }, { status: 503 });
-  if (request.headers.get("x-family-passcode") !== familyCode) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!validFamilyCode(request.headers.get("x-family-passcode"), familyCode)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
   let body: unknown;

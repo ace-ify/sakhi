@@ -13,11 +13,6 @@ function calculateAdherence(totalDoses, takenDoses) {
   };
 }
 
-// Passcode Gate Verification Logic
-function verifyCaregiverPasscode(inputPin, correctPin = "1234") {
-  if (typeof inputPin !== "string" || inputPin.length !== 4) return false;
-  return inputPin === correctPin;
-}
 
 // Levenshtein Similarity for LASA drug safety
 function calculateDrugSimilarity(a, b) {
@@ -45,13 +40,6 @@ test("1. Adherence Tracker should flag critical gap when missed doses drop below
   const critical = calculateAdherence(10, 6);
   assert.equal(critical.status, "CRITICAL_GAP");
   assert.equal(critical.alert, true);
-});
-
-test("2. Caregiver Passcode Security should strictly enforce 4-digit PIN", () => {
-  assert.equal(verifyCaregiverPasscode("1234"), true);
-  assert.equal(verifyCaregiverPasscode("0000"), false);
-  assert.equal(verifyCaregiverPasscode("123"), false);
-  assert.equal(verifyCaregiverPasscode("12345"), false);
 });
 
 test("3. LASA Drug Safety Guard detects confusing look-alike sound-alike prescriptions", () => {

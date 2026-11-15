@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readHealthState, writeHealthState } from "@/lib/server-health-state";
+import { validFamilyCode } from "@/lib/family-auth";
 
 function authorized(request: NextRequest) {
-  const code = process.env.FAMILY_PASSCODE;
-  return !!code && code.length >= 12 && request.headers.get("x-family-passcode") === code;
+  return validFamilyCode(request.headers.get("x-family-passcode"), process.env.FAMILY_PASSCODE);
 }
 
 export async function GET(request: NextRequest) {

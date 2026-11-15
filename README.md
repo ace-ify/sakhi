@@ -39,7 +39,7 @@ For reminders when the app is closed:
 
 1. Create an [Upstash Redis database](https://upstash.com/docs/redis/features/restapi) and set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in Vercel.
 2. Set `FAMILY_PASSCODE` to a random family code of at least 12 characters. Set `APP_TIME_ZONE=Asia/Kolkata` (or the family's IANA time zone). Set `REMINDER_CRON_SECRET` to a separate long random value. Generate each from PowerShell with `[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`.
-3. Deploy and unlock the caregiver portal once to sync the schedule. Check that it says **Shared schedule connected**. Add a real medicine or appointment; built-in tour examples do not trigger reminders.
+3. Deploy and unlock the caregiver portal on the device with the family code to sync the schedule and enable SOS from that browser session. Check that it says **Shared schedule connected**. Add a real medicine or appointment; built-in tour examples do not trigger reminders.
 4. Create an [Upstash QStash schedule](https://upstash.com/docs/qstash/features/schedules) every five minutes (`*/5 * * * *`) with destination `https://YOUR-VERCEL-DOMAIN/api/reminders/run?token=YOUR-REMINDER-CRON-SECRET`. The endpoint accepts QStash POST requests. Keep the URL private.
 5. Check a test schedule and the response from the reminder endpoint. `delivered` counts provider-accepted emails and queued calls; `failures` lists channels requiring investigation.
 
