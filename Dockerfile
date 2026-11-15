@@ -39,3 +39,4 @@ USER nextjs
 EXPOSE 8080
 
 CMD ["npm", "start"]
+
