@@ -9,7 +9,7 @@ test("caregiver can add a medicine and see it after a reload", async ({ page }) 
   await page.getByLabel("Family code").fill("1234");
   const authResponse = page.waitForResponse((response) => response.url().endsWith("/api/family-state/auth"));
   await page.getByRole("button", { name: "Unlock caregiver portal" }).click();
-  console.log("auth status", (await authResponse).status());
+  expect((await authResponse).status()).toBe(503);
   await expect(page.getByText("Local demo data", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Add medicine" }).click();
   await page.getByRole("textbox", { name: "Medicine name" }).last().fill("E2E Test Medicine");

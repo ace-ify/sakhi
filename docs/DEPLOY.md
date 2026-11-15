@@ -1,77 +1,39 @@
-# Deployment Guide: Sakhi
+# Deploy Sakhi
 
-This guide provides reproducible instructions for deploying Sakhi to **Google Cloud Run** (hackathon top-10 requirement) as well as **Vercel** and **Render**.
+The hackathon top 10 condition in `abouthack/` requires a working **Google Cloud Run URL**. The current Render demo is useful for preview but does not meet that specific condition. Cloud Run's free tier still requires an active Google Cloud billing account.
 
----
+## Environment
 
-## 1. Google Cloud Run (Container Deployment)
+Set these in the hosting service's secret or environment settings. See `.env.example` for the complete list.
 
-Sakhi includes a production-ready, multi-stage, non-root `Dockerfile` optimized for Google Cloud Run.
+| Purpose | Variables |
+| --- | --- |
+| Family access and persistent shared state | `FAMILY_PASSCODE`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
+| Prescription scan and AI chat | `GEMINI_API_KEY` |
+| Email reminders | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CAREGIVER_EMAIL` |
+| Outbound calls | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `CAREGIVER_PHONE` |
+| Background reminder execution | `REMINDER_CRON_SECRET`, optionally `APP_TIME_ZONE` |
+| Optional voice session | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` |
 
-### Prerequisites:
-- Google Cloud Project with Cloud Run & Artifact Registry APIs enabled:
-  ```bash
-  gcloud services enable run.googleapis.com artifactregistry.googleapis.com
-  ```
-- Authenticated `gcloud` CLI.
+Use a long private `FAMILY_PASSCODE` and a separate random `REMINDER_CRON_SECRET`. Do not commit real values. Provider keys and phone numbers must be configured on the deployed backend. The reminder endpoint must be called by a scheduler with `x-cron-secret` set to `REMINDER_CRON_SECRET`; deploying alone does not create a scheduler.
 
-### Build and Deploy Command:
+## Cloud Run
+
+1. Enable billing for a Google Cloud project and enable Cloud Run, Cloud Build, and Artifact Registry APIs.
+2. Install and authenticate `gcloud`, then select the project: `gcloud config set project PROJECT_ID`.
+3. From the repository root, run:
+
 ```bash
-# 1. Set Google Cloud Project ID
-PROJECT_ID="your-gcloud-project-id"
-REGION="asia-south1" # Mumbai region for optimal Indic latency
-
-# 2. Build container via Cloud Build
-gcloud builds submit --tag gcr.io/${PROJECT_ID}/sakhi:latest
-
-# 3. Deploy to Cloud Run
-gcloud run deploy sakhi \
-  --image gcr.io/${PROJECT_ID}/sakhi:latest \
-  --platform managed \
-  --region ${REGION} \
-  --allow-unauthenticated \
-  --port 8080 \
-  --set-env-vars GEMINI_API_KEY="your-gemini-key",GROQ_API_KEY="your-groq-key"
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+gcloud run deploy sakhi --source . --region asia-south1 --allow-unauthenticated --port 8080
 ```
 
----
+The repository `Dockerfile` builds the Next.js server. Add environment variables in Cloud Run's console or via Secret Manager, redeploy, then open the generated `run.app` URL and check the caregiver and prescription flows. Set up a scheduler separately for `/api/reminders/run` if reminders must run while nobody is visiting the site. Keep the family passcode private.
 
-## 2. Render Deployment
+## Render
 
-1. **Create Web Service**: Connect your GitHub repository `ace-ify/sakhi`.
-2. **Environment**: `Node`
-3. **Build Command**: `npm run build`
-4. **Start Command**: `npm start`
-5. **Environment Variables**:
-   - `GEMINI_API_KEY`: Google Gemini API key
-   - `GROQ_API_KEY`: Groq API key
-   - `GNANI_API_KEY`, `GNANI_STT_MODEL`, `GNANI_TTS_MODEL` (Optional)
-   - `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (Optional)
+For the existing preview, use a Node web service with `npm ci && npm run build` as the build command and `npm start` as the start command. Add the environment variables above in Render's dashboard. A sleeping free service may delay the first request. Verify the URL and provider flows after deployment.
 
----
+## Vercel
 
-## 3. Vercel Deployment
-
-1. Import the repository in [Vercel](https://vercel.com).
-2. Configure Environment Variables in Project Settings.
-3. Deploy. Functions run globally on the Edge/Serverless runtime.
-
----
-
-## 4. Health Check Verification
-
-Verify the deployed instance responds properly:
-```bash
-curl -s https://<YOUR-DEPLOYED-URL>/api/safety/check?name=Hydralazine | jq .
-```
-Expected response:
-```json
-{
-  "name": "Hydralazine",
-  "hasCollision": true,
-  "flaggedPair": "Hydroxyzine",
-  "severity": "HIGH",
-  "engine": "rust_wasm"
-}
-```
-
+Import the repository, set the environment variables in Project Settings, and deploy. The server routes use the Node runtime. Configure a scheduled request for `/api/reminders/run` separately. Vercel deployment does not substitute for the Cloud Run link required by the hackathon.
