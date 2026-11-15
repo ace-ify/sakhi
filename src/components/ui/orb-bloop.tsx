@@ -331,17 +331,10 @@ void main() {
     aMul = mix(aMul, 1.0, speakA);
   }
 
-  // Continuous organic smoke / vapor dissipation (zero circular rings or step radiation)
-  float smokeN = fbm(st * 3.8 + vec2(t * 0.08, -t * 0.12));
-  float smokeEdge = dist - (smokeN - 0.5) * 0.09;
-  float alpha = smoothstep(0.045, -0.015, smokeEdge) * aMul;
+  float alpha = smoothstep(0.008, 0.0, dist) * aMul;
   vec3 col = watercolor(st);
 
-  // Organic cloud mist fading seamlessly into transparency
-  float cloudMist = smoothstep(0.18, -0.02, smokeEdge) * 0.26;
-  vec3 glowCol = mix(u_bloopColorMid.xyz, u_bloopColorHigh.xyz, smokeN) * cloudMist;
-
-  gl_FragColor = vec4(col * alpha + glowCol, clamp(alpha + cloudMist * 0.7, 0.0, 1.0));
+  gl_FragColor = vec4(col * alpha, alpha);
 }
 `;
 
@@ -586,6 +579,7 @@ export function LivingVoiceOrb({ state, analyserNode, onActivate, size = 160 }: 
           display: "block",
           width: size,
           height: size,
+          borderRadius: "50%",
         }}
       />
       <span

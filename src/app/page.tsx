@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import LivingVoiceOrb from "@/components/ui/orb-bloop";
 import type { VoiceState } from "@/types/voice";
+import { Iphone16Pro } from "@/components/ui/iphone-16-pro";
 import { AgentControlBar } from "@/components/agents-ui/agent-control-bar";
 import { AgentChatTranscript, type TranscriptMessage } from "@/components/agents-ui/agent-chat-transcript";
 import { AgentPopup } from "@/components/agents-ui/agent-popup";
@@ -247,35 +248,28 @@ export default function MobileVoiceApp() {
         </svg>
       </div>
 
-      {/* CENTRAL PHONE CONTAINER: Authentic iPhone 16 Pro Hardware Chassis */}
-      <div
-        className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[42px] sm:border-[3.5px] transition-all duration-500 mx-auto ${
-          isDark
-            ? "bg-[#121214] text-zinc-100 sm:border-[#2f3136] sm:ring-1 sm:ring-white/[0.12] sm:shadow-[0_25px_80px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.06)]"
-            : "bg-[#faf7f5] text-stone-900 sm:border-[#d6d6dc] sm:ring-1 sm:ring-black/[0.08] sm:shadow-[0_25px_70px_rgba(0,0,0,0.22),0_0_0_1px_rgba(0,0,0,0.04)]"
-        } ${isTransitioningTheme ? "theme-transition" : ""}`}
-      >
-        {/* Dynamic Island (iPhone 16 Pro) */}
-        <div className="hidden sm:flex absolute top-2.5 left-1/2 -translate-x-1/2 z-40 items-center justify-center">
-          <div className="h-[26px] w-[96px] rounded-full bg-black flex items-center justify-between px-3 shadow-md">
-            {/* Front TrueDepth sensor aperture */}
-            <div className="size-2 rounded-full bg-[#080d4c]/80 ring-1 ring-white/10" />
-            <div className="size-2.5 rounded-full bg-black ring-1 ring-white/5" />
-          </div>
-        </div>
-
-        {/* TOP HEADER: Liquid Glass Floating Navigation Bar */}
-        <header
-          className={`sticky top-0 z-30 flex h-14 items-center justify-between px-4 pt-1 shrink-0 border-b transition-colors duration-300 ${
-            isDark
-              ? "bg-[#121214]/65 border-white/[0.08] shadow-[0_4px_30px_rgba(0,0,0,0.35)]"
-              : "bg-[#faf7f5]/70 border-stone-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.05)]"
-          }`}
-          style={{
-            backdropFilter: "blur(24px) saturate(180%)",
-            WebkitBackdropFilter: "blur(24px) saturate(180%)",
-          }}
+      {/* AUTHENTIC IPHONE 16 PRO HARDWARE CHASSIS MOCKUP */}
+      <Iphone16Pro width={420} height={840}>
+        <div
+          className={`relative z-10 flex h-full w-full flex-col overflow-hidden transition-colors duration-500 ${
+            isDark ? "bg-[#121214] text-zinc-100" : "bg-[#faf7f5] text-stone-900"
+          } ${isTransitioningTheme ? "theme-transition" : ""}`}
         >
+          {/* TOP HEADER: Liquid Glass Floating Navigation Bar */}
+          <header
+            className="sticky top-0 z-30 flex h-14 items-center justify-between px-4 pt-2 shrink-0 transition-all duration-300 select-none"
+            style={{
+              background: isDark
+                ? "linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(18, 18, 20, 0.4)"
+                : "linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 100%), rgba(250, 247, 245, 0.55)",
+              backdropFilter: "blur(28px) saturate(200%) brightness(110%)",
+              WebkitBackdropFilter: "blur(28px) saturate(200%) brightness(110%)",
+              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.07)",
+              boxShadow: isDark
+                ? "inset 0 1px 1px 0 rgba(255, 255, 255, 0.18), 0 8px 32px 0 rgba(0, 0, 0, 0.35)"
+                : "inset 0 1px 1px 0 rgba(255, 255, 255, 0.9), 0 8px 24px 0 rgba(0, 0, 0, 0.06)",
+            }}
+          >
           {/* Left: Hamburger Button & Branded Logo */}
           <div className="flex items-center gap-2.5">
             <button
@@ -811,6 +805,7 @@ export default function MobileVoiceApp() {
           </div>
         )}
       </div>
-    </div>
+    </Iphone16Pro>
+  </div>
   );
 }
