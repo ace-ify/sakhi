@@ -8,6 +8,7 @@ import { AgentControlBar } from "@/components/agents-ui/agent-control-bar";
 import { AgentChatTranscript, type TranscriptMessage } from "@/components/agents-ui/agent-chat-transcript";
 import { AgentPopup } from "@/components/agents-ui/agent-popup";
 import { CaregiverPortalModal } from "@/components/caregiver/caregiver-portal-modal";
+import { useSharedHealthData } from "@/lib/medication-store";
 import {
   Menu,
   Globe,
@@ -55,6 +56,10 @@ export default function MobileVoiceApp() {
   const [isCaregiverOpen, setIsCaregiverOpen] = useState(false);
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [statusWordIndex, setStatusWordIndex] = useState(0);
+
+  // Unified Shared Health & Medication Store (Syncs Dadi screen & Caregiver Portal)
+  const { meds, appts, markDose, addMedication, addAppointment, adherencePct, takenCount } = useSharedHealthData();
+  const dueDose = meds.find((m) => !m.taken);
 
   // Cycle Claude Code status words when thinking
   useEffect(() => {
@@ -181,14 +186,10 @@ export default function MobileVoiceApp() {
   };
 
   // Toggle Mic (Left Button in Control Bar: Mic toggle)
-  // Strictly toggles mic mute state; only operates when call is active
+  // Strictly toggles audio input mute state without hijacking agent state or interrupting
   const handleToggleMic = () => {
-    if (!isCallConnected) return; // Strict guard: cannot unmute unless in a call
-    setIsMicMuted((prev) => {
-      const nextMuted = !prev;
-      setOrbState(nextMuted ? "idle" : "listening");
-      return nextMuted;
-    });
+    if (!isCallConnected) return; // Only operates when call is active
+    setIsMicMuted((prev) => !prev);
   };
 
   // Tap Orb Action:
@@ -371,6 +372,57 @@ export default function MobileVoiceApp() {
                 <h2 className={`text-base font-bold tracking-tight mb-2.5 ${isDark ? "text-zinc-100" : "text-stone-900"}`}>
                   {language === "hi" ? "नमस्ते!" : "Good Morning!"}
                 </h2>
+
+                {/* ACTIVE DUE DOSE CARD (Cross-Screen Synchronized with Caregiver Portal) */}
+                {dueDose && (
+                  <div className="mb-3 p-3 rounded-2xl border border-amber-500/40 bg-zinc-900/90 shadow-sm flex items-center justify-between animate-in slide-in-from-bottom-2">
+                    <div className="flex-1 pr-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs">💊</span>
+                        <span className="text-[11px] font-bold text-amber-400">
+                          {language === "hi" ? "अगली खुराक का समय" : "Next Due Dose"}
+                        </span>
+                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">
+                          {dueDose.time}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-zinc-100 mt-1">
+                        {dueDose.name} {dueDose.dosage}
+                      </p>
+                      <p className="text-[10px] text-zinc-400 truncate">{dueDose.instructions}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => {
+                          markDose(dueDose.id, true);
+                          handleTrigger(
+                            language === "hi" ? `${dueDose.name} ले ली` : `Took ${dueDose.name}`,
+                            language === "hi"
+                              ? `बहुत बढ़िया दादी जी! मैंने दर्ज कर लिया है कि आपने ${dueDose.name} ले ली है। स्वास्थ्य रिकॉर्ड अपडेट हो गया है।`
+                              : `Recorded, Dadi! ${dueDose.name} marked as taken. Compliance updated.`
+                          );
+                        }}
+                        className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-semibold shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      >
+                        {language === "hi" ? "ले ली ✓" : "Taken ✓"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleTrigger(
+                            language === "hi" ? `${dueDose.name} अभी नहीं ली` : `Skipped ${dueDose.name}`,
+                            language === "hi"
+                              ? `कोई बात नहीं दादी, मैं 20 मिनट बाद फिर याद दिलाऊँगी। ध्यान रखें!`
+                              : `Understood Dadi, I will remind you again in 20 minutes.`
+                          );
+                        }}
+                        className="rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 px-2 py-1.5 text-xs font-medium cursor-pointer"
+                      >
+                        {language === "hi" ? "बाकी" : "Later"}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   {minimalPrompts.map((p, idx) => (
@@ -783,6 +835,16 @@ export default function MobileVoiceApp() {
           onClose={() => setIsCaregiverOpen(false)}
           isDark={isDark}
           language={language}
+          meds={meds}
+          onToggleMed={(id) => {
+            const med = meds.find((m) => m.id === id);
+            if (med) markDose(id, !med.taken);
+          }}
+          onAddMed={addMedication}
+          appts={appts}
+          onAddAppt={addAppointment}
+          adherencePct={adherencePct}
+          takenCount={takenCount}
         />
       </div>
     </div>
