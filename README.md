@@ -8,7 +8,7 @@
 [![Google AI](https://img.shields.io/badge/Google%20AI-Gemini%202.5%20Flash-4285F4.svg)](src/app/api/chat/route.ts)
 [![Cloud Run Ready](https://img.shields.io/badge/deployment-Cloud%20Run%20%2F%20Docker-2496ED.svg)](docs/DEPLOY.md)
 
-- **Live Demo Application**: [https:sakhi-silk.ppappapprcel.](httpakhi-s://ssilk.vercer.com)
+- **Live Demo Application**: [[https://sakhi-silk.vercel.app)](<https://sakhi-silk.vercel.app>))
 - **Live Repository**: [https://github.com/ace-ify/sakhi](https://github.com/ace-ify/sakhi)
 - **Deployment & Architecture Guide**: [docs/DEPLOY.md](docs/DEPLOY.md)
 - **Security & DPDP 2023 Policy**: [SECURITY.md](SECURITY.md)
