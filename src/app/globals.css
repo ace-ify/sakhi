@@ -34,3 +34,20 @@ body {
 .theme-transition {
   animation: circular-expand 850ms cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
+
+/* Continuous organic cloud/smoke drift animation (no circular wave rings) */
+@keyframes smokeDrift {
+  0% {
+    transform: rotate(0deg) scale(0.95) translate(0px, 0px);
+    border-radius: 46% 54% 60% 40% / 45% 48% 52% 55%;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.06) translate(6px, -8px);
+    border-radius: 58% 42% 40% 60% / 54% 58% 42% 46%;
+  }
+  100% {
+    transform: rotate(360deg) scale(0.97) translate(-6px, 6px);
+    border-radius: 46% 54% 60% 40% / 45% 48% 52% 55%;
+  }
+}
+

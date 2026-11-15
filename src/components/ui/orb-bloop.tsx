@@ -331,14 +331,17 @@ void main() {
     aMul = mix(aMul, 1.0, speakA);
   }
 
-  float alpha = smoothstep(0.008, 0.0, dist) * aMul;
+  // Continuous organic smoke / vapor dissipation (zero circular rings or step radiation)
+  float smokeN = fbm(st * 3.8 + vec2(t * 0.08, -t * 0.12));
+  float smokeEdge = dist - (smokeN - 0.5) * 0.09;
+  float alpha = smoothstep(0.045, -0.015, smokeEdge) * aMul;
   vec3 col = watercolor(st);
 
-  // Soft atmospheric outer rim glow
-  float outerGlow = smoothstep(0.08, 0.0, dist) * (1.0 - smoothstep(0.008, 0.0, dist)) * 0.35;
-  vec3 glowCol = u_bloopColorHigh.xyz * outerGlow;
+  // Organic cloud mist fading seamlessly into transparency
+  float cloudMist = smoothstep(0.18, -0.02, smokeEdge) * 0.26;
+  vec3 glowCol = mix(u_bloopColorMid.xyz, u_bloopColorHigh.xyz, smokeN) * cloudMist;
 
-  gl_FragColor = vec4(col * alpha + glowCol, max(alpha, outerGlow));
+  gl_FragColor = vec4(col * alpha + glowCol, clamp(alpha + cloudMist * 0.7, 0.0, 1.0));
 }
 `;
 
@@ -567,26 +570,11 @@ export function LivingVoiceOrb({ state, analyserNode, onActivate, size = 160 }: 
         overflow: "visible",
         padding: 0,
         border: 0,
-        borderRadius: "50%",
         background: "transparent",
         cursor: onActivate ? "pointer" : "default",
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 4,
-          borderRadius: "50%",
-          background: webglAvailable
-            ? "radial-gradient(circle, rgba(5,223,114,.13), rgba(5,223,114,.045) 54%, transparent 75%)"
-            : state.includes("emergency")
-            ? "radial-gradient(circle, rgba(239,68,68,.75), rgba(239,68,68,.18) 56%, transparent 76%)"
-            : "radial-gradient(circle, rgba(5,223,114,.65), rgba(5,223,114,.16) 56%, transparent 76%)",
-          filter: "blur(8px)",
-        }}
-      />
       <canvas
         ref={canvasRef}
         width={canvasPixelSize}
@@ -598,7 +586,6 @@ export function LivingVoiceOrb({ state, analyserNode, onActivate, size = 160 }: 
           display: "block",
           width: size,
           height: size,
-          borderRadius: "50%",
         }}
       />
       <span

@@ -247,16 +247,35 @@ export default function MobileVoiceApp() {
         </svg>
       </div>
 
-      {/* CENTRAL PHONE CONTAINER: Pixel-Perfect for iPhone 16 Pro Max & Responsive Mobile */}
+      {/* CENTRAL PHONE CONTAINER: Authentic iPhone 16 Pro Hardware Chassis */}
       <div
-        className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[36px] sm:border-[3px] shadow-2xl transition-colors duration-500 mx-auto ${
+        className={`relative z-10 flex h-[100dvh] max-h-none sm:h-[880px] sm:max-h-[92vh] w-full max-w-full sm:max-w-[420px] flex-col overflow-hidden rounded-none sm:rounded-[42px] sm:border-[3.5px] transition-all duration-500 mx-auto ${
           isDark
-            ? "bg-[#121214] text-zinc-100 sm:border-[#2e2e34] sm:ring-1 sm:ring-white/10 sm:shadow-[0_25px_70px_rgba(0,0,0,0.9)]"
-            : "bg-[#faf7f5] text-stone-900 sm:border-[#d4d4d8] sm:ring-1 sm:ring-black/10 sm:shadow-[0_25px_60px_rgba(0,0,0,0.2)]"
+            ? "bg-[#121214] text-zinc-100 sm:border-[#2f3136] sm:ring-1 sm:ring-white/[0.12] sm:shadow-[0_25px_80px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.06)]"
+            : "bg-[#faf7f5] text-stone-900 sm:border-[#d6d6dc] sm:ring-1 sm:ring-black/[0.08] sm:shadow-[0_25px_70px_rgba(0,0,0,0.22),0_0_0_1px_rgba(0,0,0,0.04)]"
         } ${isTransitioningTheme ? "theme-transition" : ""}`}
       >
-        {/* TOP HEADER: Clean & Breathable */}
-        <header className="flex h-14 items-center justify-between px-4 pt-1 shrink-0 z-20">
+        {/* Dynamic Island (iPhone 16 Pro) */}
+        <div className="hidden sm:flex absolute top-2.5 left-1/2 -translate-x-1/2 z-40 items-center justify-center">
+          <div className="h-[26px] w-[96px] rounded-full bg-black flex items-center justify-between px-3 shadow-md">
+            {/* Front TrueDepth sensor aperture */}
+            <div className="size-2 rounded-full bg-[#080d4c]/80 ring-1 ring-white/10" />
+            <div className="size-2.5 rounded-full bg-black ring-1 ring-white/5" />
+          </div>
+        </div>
+
+        {/* TOP HEADER: Liquid Glass Floating Navigation Bar */}
+        <header
+          className={`sticky top-0 z-30 flex h-14 items-center justify-between px-4 pt-1 shrink-0 border-b transition-colors duration-300 ${
+            isDark
+              ? "bg-[#121214]/65 border-white/[0.08] shadow-[0_4px_30px_rgba(0,0,0,0.35)]"
+              : "bg-[#faf7f5]/70 border-stone-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.05)]"
+          }`}
+          style={{
+            backdropFilter: "blur(24px) saturate(180%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          }}
+        >
           {/* Left: Hamburger Button & Branded Logo */}
           <div className="flex items-center gap-2.5">
             <button
@@ -334,20 +353,44 @@ export default function MobileVoiceApp() {
           {!isChatTranscriptOpen ? (
             <div className="flex flex-1 flex-col justify-between py-1 min-h-0 overflow-hidden animate-in fade-in duration-300">
               
-              {/* UPPER SECTION: Centered Majestic Living Orb (Double Sized) */}
+              {/* UPPER SECTION: Centered Majestic Living Orb with Continuous Cloud / Smoke Mist */}
               <div className="flex flex-1 flex-col items-center justify-center py-2 min-h-0">
                 <div className="relative flex items-center justify-center shrink-0 my-auto">
-                  <div
-                    className={`absolute -inset-10 rounded-full blur-3xl transition-opacity duration-700 pointer-events-none ${
-                      orbState === "listening"
-                        ? "bg-rose-500/30 opacity-100"
-                        : orbState === "thinking"
-                        ? "bg-amber-500/30 opacity-100"
-                        : orbState === "speaking"
-                        ? "bg-emerald-500/30 opacity-100"
-                        : "bg-teal-500/15 opacity-70"
-                    }`}
-                  />
+                  {/* Organic Continuous Atmospheric Cloud & Smoke Mist (Zero circular wave rings) */}
+                  <div className="pointer-events-none absolute inset-0 -m-16 overflow-visible">
+                    <div
+                      className={`absolute inset-0 blur-3xl opacity-50 transition-all duration-1000 ${
+                        orbState === "listening"
+                          ? "bg-rose-500/35"
+                          : orbState === "thinking"
+                          ? "bg-amber-500/35"
+                          : orbState === "speaking"
+                          ? "bg-emerald-500/35"
+                          : isDark
+                          ? "bg-emerald-500/15"
+                          : "bg-emerald-500/20"
+                      }`}
+                      style={{
+                        animation: "smokeDrift 14s ease-in-out infinite alternate",
+                      }}
+                    />
+                    <div
+                      className={`absolute inset-3 blur-2xl opacity-40 transition-all duration-1000 ${
+                        orbState === "listening"
+                          ? "bg-rose-400/30"
+                          : orbState === "thinking"
+                          ? "bg-sky-400/30"
+                          : orbState === "speaking"
+                          ? "bg-teal-400/30"
+                          : isDark
+                          ? "bg-teal-400/10"
+                          : "bg-teal-400/15"
+                      }`}
+                      style={{
+                        animation: "smokeDrift 18s ease-in-out infinite alternate-reverse",
+                      }}
+                    />
+                  </div>
                   <LivingVoiceOrb state={orbState} onActivate={handleOrbTap} size={280} />
                 </div>
 
