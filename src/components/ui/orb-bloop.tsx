@@ -391,15 +391,17 @@ export interface LivingVoiceOrbProps {
   /** The parent owns microphone access and supplies its analyser. */
   analyserNode?: AnalyserNode | null;
   onActivate?: () => void;
+  size?: number;
 }
 
-export function LivingVoiceOrb({ state, analyserNode, onActivate }: LivingVoiceOrbProps) {
+export function LivingVoiceOrb({ state, analyserNode, onActivate, size = 160 }: LivingVoiceOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentStateRef = useRef(state);
   const analyserRef = useRef(analyserNode);
   const [webglAvailable, setWebglAvailable] = useState(true);
   currentStateRef.current = state;
   analyserRef.current = analyserNode;
+  const canvasPixelSize = size * 2;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -556,14 +558,64 @@ export function LivingVoiceOrb({ state, analyserNode, onActivate }: LivingVoiceO
       aria-pressed={state === "listening"}
       data-state={state}
       style={{
-        position: "relative", display: "grid", width: 160, height: 160, flex: "0 0 160px", placeItems: "center",
-        overflow: "visible", padding: 0, border: 0, borderRadius: "50%", background: "transparent", cursor: onActivate ? "pointer" : "default",
+        position: "relative",
+        display: "grid",
+        width: size,
+        height: size,
+        flex: `0 0 ${size}px`,
+        placeItems: "center",
+        overflow: "visible",
+        padding: 0,
+        border: 0,
+        borderRadius: "50%",
+        background: "transparent",
+        cursor: onActivate ? "pointer" : "default",
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      <span aria-hidden="true" style={{ position: "absolute", inset: 4, borderRadius: "50%", background: webglAvailable ? "radial-gradient(circle, rgba(5,223,114,.13), rgba(5,223,114,.045) 54%, transparent 75%)" : state.includes("emergency") ? "radial-gradient(circle, rgba(239,68,68,.75), rgba(239,68,68,.18) 56%, transparent 76%)" : "radial-gradient(circle, rgba(5,223,114,.65), rgba(5,223,114,.16) 56%, transparent 76%)", filter: "blur(8px)" }} />
-      <canvas ref={canvasRef} width={256} height={256} aria-hidden="true" style={{ position: "relative", zIndex: 1, display: "block", width: 160, height: 160, borderRadius: "50%" }} />
-      <span style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>{labels[state]}</span>
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 4,
+          borderRadius: "50%",
+          background: webglAvailable
+            ? "radial-gradient(circle, rgba(5,223,114,.13), rgba(5,223,114,.045) 54%, transparent 75%)"
+            : state.includes("emergency")
+            ? "radial-gradient(circle, rgba(239,68,68,.75), rgba(239,68,68,.18) 56%, transparent 76%)"
+            : "radial-gradient(circle, rgba(5,223,114,.65), rgba(5,223,114,.16) 56%, transparent 76%)",
+          filter: "blur(8px)",
+        }}
+      />
+      <canvas
+        ref={canvasRef}
+        width={canvasPixelSize}
+        height={canvasPixelSize}
+        aria-hidden="true"
+        style={{
+          position: "relative",
+          zIndex: 1,
+          display: "block",
+          width: size,
+          height: size,
+          borderRadius: "50%",
+        }}
+      />
+      <span
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        {labels[state]}
+      </span>
     </button>
   );
 }

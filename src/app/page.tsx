@@ -334,27 +334,21 @@ export default function MobileVoiceApp() {
           {!isChatTranscriptOpen ? (
             <div className="flex flex-1 flex-col justify-between py-1 min-h-0 overflow-hidden animate-in fade-in duration-300">
               
-              {/* UPPER SECTION: Centered Majestic Living Orb */}
+              {/* UPPER SECTION: Centered Majestic Living Orb (Double Sized) */}
               <div className="flex flex-1 flex-col items-center justify-center py-2 min-h-0">
-                <div
-                  style={{
-                    transform: "scale(1)",
-                    transformOrigin: "center center",
-                  }}
-                  className="relative flex items-center justify-center shrink-0 my-auto"
-                >
+                <div className="relative flex items-center justify-center shrink-0 my-auto">
                   <div
-                    className={`absolute -inset-6 rounded-full blur-2xl transition-opacity duration-700 pointer-events-none ${
+                    className={`absolute -inset-10 rounded-full blur-3xl transition-opacity duration-700 pointer-events-none ${
                       orbState === "listening"
-                        ? "bg-rose-500/25 opacity-100"
+                        ? "bg-rose-500/30 opacity-100"
                         : orbState === "thinking"
-                        ? "bg-amber-500/25 opacity-100"
+                        ? "bg-amber-500/30 opacity-100"
                         : orbState === "speaking"
-                        ? "bg-emerald-500/25 opacity-100"
-                        : "bg-teal-500/10 opacity-60"
+                        ? "bg-emerald-500/30 opacity-100"
+                        : "bg-teal-500/15 opacity-70"
                     }`}
                   />
-                  <LivingVoiceOrb state={orbState} onActivate={handleOrbTap} />
+                  <LivingVoiceOrb state={orbState} onActivate={handleOrbTap} size={280} />
                 </div>
 
                 {/* Subtle Breathing Status Cue */}
@@ -381,34 +375,26 @@ export default function MobileVoiceApp() {
                 </div>
               </div>
 
-              {/* LOWER SECTION: Clean iOS-Style Action Pills */}
-              <div className="w-full shrink-0 pt-1 pb-1">
-                <div className="mb-2">
-                  <h2 className={`text-sm font-bold tracking-tight ${isDark ? "text-zinc-100" : "text-stone-900"}`}>
-                    {language === "hi" ? "नमस्ते!" : "Good Morning!"}
-                  </h2>
-                  <p className={`text-[10px] ${isDark ? "text-zinc-500" : "text-stone-500"}`}>
-                    {language === "hi" ? "दैनिक स्वास्थ्य सहायता के लिए चुनें" : "Quick health prompts"}
-                  </p>
-                </div>
+              {/* LOWER SECTION: Minimalist Natural Prompt List (No Cards, No Subtitle) */}
+              <div className="w-full shrink-0 pt-2 pb-2">
+                <h2 className={`text-base font-bold tracking-tight mb-2.5 ${isDark ? "text-zinc-100" : "text-stone-900"}`}>
+                  {language === "hi" ? "नमस्ते!" : "Good Morning!"}
+                </h2>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {minimalPrompts.map((p, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleTrigger(p.text, p.reply)}
-                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-all duration-200 cursor-pointer border ${
-                        isDark
-                          ? "bg-[#18181c]/90 hover:bg-[#202026] border-zinc-800/80 hover:border-zinc-700 text-zinc-200 shadow-xs active:scale-[0.99]"
-                          : "bg-white hover:bg-stone-50 border-stone-200/90 text-stone-800 shadow-xs active:scale-[0.99]"
-                      }`}
+                      className="group flex w-full items-center gap-3 py-1 text-left transition-all duration-150 cursor-pointer bg-transparent border-0 outline-none select-none"
                     >
-                      <div className="flex items-center gap-2.5 overflow-hidden">
-                        <span className="text-xs shrink-0 select-none">{p.icon}</span>
-                        <span className="text-xs font-medium tracking-tight truncate">{p.text}</span>
-                      </div>
-                      <span className={`text-[11px] font-mono shrink-0 ml-1.5 ${isDark ? "text-zinc-500" : "text-stone-400"}`}>
-                        →
+                      <span className="text-sm shrink-0 group-hover:scale-110 transition-transform">{p.icon}</span>
+                      <span
+                        className={`text-xs font-medium tracking-tight transition-colors ${
+                          isDark ? "text-zinc-300 group-hover:text-white" : "text-stone-700 group-hover:text-stone-900"
+                        }`}
+                      >
+                        {p.text}
                       </span>
                     </button>
                   ))}
